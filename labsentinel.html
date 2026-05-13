@@ -410,7 +410,7 @@ async function parseLabReport(file){
     }catch(e){ setImportStatus('error','Could not read file: '+e.message); return; }
     requestBody={
       contents:[{parts:[{text:'The following is a lab report in HTML format:\n\n'+htmlText+'\n\n'+GEMINI_PROMPT}]}],
-      generationConfig:{temperature:0,maxOutputTokens:1024}
+      generationConfig:{temperature:0,maxOutputTokens:1024,thinkingConfig:{thinkingBudget:0}}
     };
   } else {
     const mimeType = file.type || (file.name.endsWith('.pdf')?'application/pdf':'image/jpeg');
@@ -422,7 +422,7 @@ async function parseLabReport(file){
         {inline_data:{mime_type:mimeType,data:base64}},
         {text:GEMINI_PROMPT}
       ]}],
-      generationConfig:{temperature:0,maxOutputTokens:1024}
+      generationConfig:{temperature:0,maxOutputTokens:1024,thinkingConfig:{thinkingBudget:0}}
     };
   }
 
@@ -435,7 +435,7 @@ async function parseLabReport(file){
     });
     if(!resp.ok){ const t=await resp.text(); throw new Error(`Gemini API ${resp.status}: ${t.slice(0,200)}`); }
     const data=await resp.json();
-    const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const parts=data?.candidates?.[0]?.content?.parts||[];const raw=parts.find(p=>!p.thought)?.text||'';
     const cleaned=raw.replace(/```json\n?/g,'').replace(/```/g,'').trim();
     parsed=JSON.parse(cleaned);
   }catch(e){ setImportStatus('error','AI parsing failed: '+e.message); return; }
