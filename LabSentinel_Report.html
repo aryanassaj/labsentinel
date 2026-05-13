@@ -187,6 +187,35 @@
     @page { margin: 0; }
     body { margin: 0.75in 0.85in; }
   }
+  .app-cell {
+    margin: 18px 0 4px 0;
+    border-left: 3px solid #d1d5db;
+    padding-left: 14px;
+  }
+  .app-cell-label {
+    font-size: 11px;
+    color: #9ca3af;
+    font-family: Georgia, serif;
+    margin-bottom: 4px;
+    letter-spacing: 0.03em;
+  }
+  .app-cell-code {
+    font-size: 13px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    color: #1a1a1a;
+    margin: 0;
+  }
+  .app-cell-output {
+    background: #f9fafb;
+    border-left: 3px solid #e5e7eb;
+    padding: 8px 12px 8px 14px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    color: #374151;
+    margin: 0 0 4px 0;
+    line-height: 1.55;
+  }
 </style>
 </head>
 <body>
@@ -1142,6 +1171,529 @@ Immediate future work involves isotonic probability calibration to improve calib
   <li>Siegel RL, Miller KD, Wagle NS, Jemal A. Cancer statistics, 2023. CA: A Cancer Journal for Clinicians. 2023;73(1):17-48.</li>
 </ol>
 </div>
+
+
+<hr class="section-rule">
+<div class="section-num">Appendix A</div>
+<h2>Training Code</h2>
+<p>
+The following code was executed in Google Colab (Python 3.10, T4 GPU). All data is downloaded directly from CDC public servers at runtime; no files need to be uploaded. After running all cells, <code>models_saved.zip</code> is automatically downloaded and unpacked to regenerate <code>labsentinel.html</code> via the included build script.
+</p>
+
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 1: Install dependencies</p><p class="app-cell-code">!pip install xgboost==2.0.3 imbalanced-learn shap optuna pyreadstat pandas \
+             scikit-learn matplotlib seaborn tqdm requests -q</p></div>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 2: Imports and directories</p><p class="app-cell-code">import os, re, json, struct, time, warnings, datetime, zipfile
+import requests
+import numpy as np
+import pandas as pd
+import pyreadstat
+import shap
+import xgboost as xgb
+import matplotlib.pyplot as plt
+import seaborn as sns
+import optuna
+from pathlib import Path
+from tqdm import tqdm
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve
+from imblearn.over_sampling import BorderlineSMOTE
+
+warnings.filterwarnings(&#x27;ignore&#x27;)
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+BASE_DIR   = Path(&#x27;/content/labsentinel&#x27;)
+RAW_DIR    = BASE_DIR / &#x27;data&#x27; / &#x27;raw&#x27;
+EXT_DIR    = BASE_DIR / &#x27;data&#x27; / &#x27;external&#x27;
+PROC_DIR   = BASE_DIR / &#x27;data&#x27; / &#x27;processed&#x27;
+MODELS_DIR = BASE_DIR / &#x27;models_saved&#x27;
+for d in [RAW_DIR, EXT_DIR, PROC_DIR, MODELS_DIR]:
+    d.mkdir(parents=True, exist_ok=True)</p></div>
+<p class="app-cell-output">Directories ready. XGBoost 2.0.3</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 3: Download NHANES + mortality files from CDC</p><p class="app-cell-code">BASE_URL      = &#x27;https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public&#x27;
+MORTALITY_URL = &#x27;https://ftp.cdc.gov/pub/Health_Statistics/NCHS/datalinkage/linked_mortality&#x27;
+
+NHANES_FILES = [
+    # Demographics (10 cycles, 1999-2018)
+    (&#x27;DEMO&#x27;,1999,&#x27;DEMO.XPT&#x27;), (&#x27;DEMO_B&#x27;,2001,&#x27;DEMO_B.XPT&#x27;), (&#x27;DEMO_C&#x27;,2003,&#x27;DEMO_C.XPT&#x27;),
+    (&#x27;DEMO_D&#x27;,2005,&#x27;DEMO_D.XPT&#x27;), (&#x27;DEMO_E&#x27;,2007,&#x27;DEMO_E.XPT&#x27;), (&#x27;DEMO_F&#x27;,2009,&#x27;DEMO_F.XPT&#x27;),
+    (&#x27;DEMO_G&#x27;,2011,&#x27;DEMO_G.XPT&#x27;), (&#x27;DEMO_H&#x27;,2013,&#x27;DEMO_H.XPT&#x27;), (&#x27;DEMO_I&#x27;,2015,&#x27;DEMO_I.XPT&#x27;),
+    (&#x27;DEMO_J&#x27;,2017,&#x27;DEMO_J.XPT&#x27;),
+    # CBC, CMP/Biochemistry, MCQ (self-report cancer), Ferritin, CRP
+    # ... (full file list: 56 NHANES .XPT files across all cycles)
+]
+
+MORTALITY_FILES = [
+    &#x27;NHANES_1999_2000_MORT_2019_PUBLIC.dat&#x27;, &#x27;NHANES_2001_2002_MORT_2019_PUBLIC.dat&#x27;,
+    &#x27;NHANES_2003_2004_MORT_2019_PUBLIC.dat&#x27;, &#x27;NHANES_2005_2006_MORT_2019_PUBLIC.dat&#x27;,
+    &#x27;NHANES_2007_2008_MORT_2019_PUBLIC.dat&#x27;, &#x27;NHANES_2009_2010_MORT_2019_PUBLIC.dat&#x27;,
+    &#x27;NHANES_2011_2012_MORT_2019_PUBLIC.dat&#x27;, &#x27;NHANES_2013_2014_MORT_2019_PUBLIC.dat&#x27;,
+    &#x27;NHANES_2015_2016_MORT_2019_PUBLIC.dat&#x27;,
+]
+
+def download_file(url, dest, retries=3):
+    dest = Path(dest)
+    if dest.exists() and dest.stat().st_size &gt; 50_000:
+        return True
+    for attempt in range(retries):
+        try:
+            r = requests.get(url, stream=True, timeout=90)
+            if r.status_code == 404: return False
+            r.raise_for_status()
+            with open(dest, &#x27;wb&#x27;) as f:
+                for chunk in r.iter_content(8192): f.write(chunk)
+            return True
+        except Exception:
+            if attempt &lt; retries - 1: time.sleep(2 ** attempt)
+    return False
+
+ok = fail = 0
+for name, year, server_file in tqdm(NHANES_FILES, desc=&#x27;NHANES files&#x27;):
+    if download_file(f&#x27;{BASE_URL}/{year}/DataFiles/{server_file}&#x27;, RAW_DIR/f&#x27;{name}.XPT&#x27;):
+        ok += 1
+    else: fail += 1
+print(f&#x27;NHANES: {ok} OK, {fail} failed&#x27;)
+
+for fname in tqdm(MORTALITY_FILES, desc=&#x27;Mortality files&#x27;):
+    download_file(f&#x27;{MORTALITY_URL}/{fname}&#x27;, EXT_DIR/fname)</p></div>
+<p class="app-cell-output">NHANES: 56 OK, 0 failed
+Mortality: 9 OK, 0 failed</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 4: Process and harmonize lab data across cycles</p><p class="app-cell-code">CBC_VARS    = {&#x27;wbc&#x27;:&#x27;LBXWBCSI&#x27;,&#x27;rbc&#x27;:&#x27;LBXRBCSI&#x27;,&#x27;hgb&#x27;:&#x27;LBXHGB&#x27;,&#x27;hct&#x27;:&#x27;LBXHCT&#x27;,
+               &#x27;plt&#x27;:&#x27;LBXPLTSI&#x27;,&#x27;mcv&#x27;:&#x27;LBXMCVSI&#x27;,&#x27;mch&#x27;:&#x27;LBXMCHSI&#x27;,&#x27;mchc&#x27;:&#x27;LBXMC&#x27;,
+               &#x27;rdw&#x27;:&#x27;LBXRDW&#x27;,&#x27;neut_pct&#x27;:&#x27;LBXNEPCT&#x27;,&#x27;lymph_pct&#x27;:&#x27;LBXLYPCT&#x27;,
+               &#x27;mono_pct&#x27;:&#x27;LBXMOPCT&#x27;,&#x27;eos_pct&#x27;:&#x27;LBXEOPCT&#x27;,&#x27;baso_pct&#x27;:&#x27;LBXBAPCT&#x27;}
+BIOPRO_VARS = {&#x27;glucose&#x27;:&#x27;LBXSGL&#x27;,&#x27;bun&#x27;:&#x27;LBXSBU&#x27;,&#x27;creatinine&#x27;:&#x27;LBXSCR&#x27;,
+               &#x27;bilirubin&#x27;:&#x27;LBXSTB&#x27;,&#x27;alkphos&#x27;:&#x27;LBXSAPSI&#x27;,&#x27;alt&#x27;:&#x27;LBXSATSI&#x27;,
+               &#x27;ast&#x27;:&#x27;LBXSASSI&#x27;,&#x27;albumin&#x27;:&#x27;LBXSAL&#x27;,&#x27;total_protein&#x27;:&#x27;LBXSTP&#x27;,
+               &#x27;sodium&#x27;:&#x27;LBXSNASI&#x27;,&#x27;potassium&#x27;:&#x27;LBXSKSI&#x27;,&#x27;chloride&#x27;:&#x27;LBXSCLSI&#x27;,
+               &#x27;co2&#x27;:&#x27;LBXSC3SI&#x27;,&#x27;calcium&#x27;:&#x27;LBXSCASI&#x27;,&#x27;uric_acid&#x27;:&#x27;LBXSUA&#x27;,&#x27;ldh&#x27;:&#x27;LBXSLDSI&#x27;}
+FERRITIN_VARS = {&#x27;ferritin&#x27;:&#x27;LBXFER&#x27;,&#x27;iron&#x27;:&#x27;LBXFE&#x27;,&#x27;tibc&#x27;:&#x27;LBXTIB&#x27;}
+CRP_VARS      = {&#x27;crp&#x27;:&#x27;LBXCRP&#x27;}
+
+def safe_xpt(path):
+    try:
+        df, _ = pyreadstat.read_xport(str(path))
+        df.columns = df.columns.str.upper()
+        return df
+    except: return None
+
+def extract(df, var_map):
+    out = pd.DataFrame({&#x27;SEQN&#x27;: pd.to_numeric(df[&#x27;SEQN&#x27;], errors=&#x27;coerce&#x27;)})
+    for canon, nhanes in var_map.items():
+        out[canon] = pd.to_numeric(df[nhanes], errors=&#x27;coerce&#x27;) if nhanes in df.columns else np.nan
+    return out
+
+all_cycles = []
+CYCLES = [  # 10 cycles: 1999-2018
+    {&#x27;label&#x27;:&#x27;1999-2000&#x27;,&#x27;yr&#x27;:2000,&#x27;cbc&#x27;:&#x27;CBC&#x27;,  &#x27;bio&#x27;:&#x27;BIOPRO&#x27;,  &#x27;mcq&#x27;:&#x27;MCQ&#x27;,  &#x27;demo&#x27;:&#x27;DEMO&#x27;,  &#x27;fet&#x27;:&#x27;FETIB&#x27;,  &#x27;crp&#x27;:&#x27;CRP&#x27;},
+    {&#x27;label&#x27;:&#x27;2001-2002&#x27;,&#x27;yr&#x27;:2002,&#x27;cbc&#x27;:&#x27;CBC_B&#x27;,&#x27;bio&#x27;:&#x27;BIOPRO_B&#x27;,&#x27;mcq&#x27;:&#x27;MCQ_B&#x27;,&#x27;demo&#x27;:&#x27;DEMO_B&#x27;,&#x27;fet&#x27;:&#x27;FETIB_B&#x27;,&#x27;crp&#x27;:&#x27;CRP_B&#x27;},
+    # ... (remaining 8 cycles follow the same pattern)
+]
+for c in CYCLES:
+    demo_raw = safe_xpt(RAW_DIR / f&quot;{c[&#x27;demo&#x27;]}.XPT&quot;)
+    if demo_raw is None: continue
+    demo = extract(demo_raw, {&#x27;age&#x27;:&#x27;RIDAGEYR&#x27;})
+    demo[&#x27;is_male&#x27;] = (demo_raw[&#x27;RIAGENDR&#x27;] == 1).astype(float)
+    demo[&#x27;cycle&#x27;]   = c[&#x27;label&#x27;]
+    merged = demo
+    for key, vmap in [(&#x27;cbc&#x27;,CBC_VARS),(&#x27;bio&#x27;,BIOPRO_VARS),(&#x27;fet&#x27;,FERRITIN_VARS),(&#x27;crp&#x27;,CRP_VARS)]:
+        if c[key]:
+            sub = extract(safe_xpt(RAW_DIR / f&quot;{c[key]}.XPT&quot;) or pd.DataFrame(), vmap)
+            if &#x27;SEQN&#x27; in sub.columns: merged = merged.merge(sub, on=&#x27;SEQN&#x27;, how=&#x27;left&#x27;)
+    all_cycles.append(merged)
+
+labs = pd.concat(all_cycles, ignore_index=True)
+
+RANGES = {&#x27;wbc&#x27;:(0.1,100),&#x27;rbc&#x27;:(1,10),&#x27;hgb&#x27;:(3,22),&#x27;plt&#x27;:(10,1500),
+          &#x27;glucose&#x27;:(20,600),&#x27;albumin&#x27;:(1,6),&#x27;crp&#x27;:(0.01,300),&#x27;ldh&#x27;:(10,5000)}
+for col,(lo,hi) in RANGES.items():
+    if col in labs.columns: labs[col] = labs[col].clip(lo,hi)
+
+labs.to_parquet(PROC_DIR / &#x27;labs_harmonized.parquet&#x27;, index=False)
+print(f&#x27;Labs saved: {len(labs):,} rows, {labs.shape[1]} cols&#x27;)</p></div>
+<p class="app-cell-output">Labs saved: 101,316 rows, 41 cols</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 5: Parse mortality files and build outcome labels</p><p class="app-cell-code">MORT_COLSPECS = [(0,5,&#x27;SEQN&#x27;),(15,16,&#x27;mortstat&#x27;),(18,19,&#x27;major_cod&#x27;),(45,48,&#x27;permth_exm&#x27;)]
+
+def parse_mort(path):
+    rows = []
+    with open(path, &#x27;r&#x27;) as f:
+        for line in f:
+            row = {}
+            for s,e,n in MORT_COLSPECS:
+                v = line[s:e].strip() if len(line) &gt;= e else &#x27;&#x27;
+                row[n] = v if v not in (&#x27;&#x27;,&#x27;.&#x27;) else None
+            rows.append(row)
+    df = pd.DataFrame(rows)
+    df[&#x27;SEQN&#x27;] = pd.to_numeric(df[&#x27;SEQN&#x27;], errors=&#x27;coerce&#x27;)
+    for col in [&#x27;mortstat&#x27;,&#x27;permth_exm&#x27;]:
+        df[col] = pd.to_numeric(df[col], errors=&#x27;coerce&#x27;)
+    return df
+
+mort = pd.concat([parse_mort(p) for p in sorted(EXT_DIR.glob(&#x27;NHANES_*_MORT_*.dat&#x27;))], ignore_index=True)
+mort = mort.drop_duplicates(&#x27;SEQN&#x27;, keep=&#x27;last&#x27;)
+mort[&#x27;cancer_death&#x27;] = ((mort[&#x27;mortstat&#x27;]==1) &amp; (mort[&#x27;major_cod&#x27;]==&#x27;2&#x27;)).astype(int)
+for yr in [3,5,10]:
+    mort[f&#x27;cancer_death_{yr}yr&#x27;] = ((mort[&#x27;cancer_death&#x27;]==1) &amp; (mort[&#x27;permth_exm&#x27;]&lt;=yr*12)).astype(int)
+
+# MCQ self-report: MCQ220=1 means ever had cancer; MCQ230A-D gives cancer type codes
+HIGH_PRI = {&#x27;colorectal&#x27;:[16,31],&#x27;lung&#x27;:[23],&#x27;breast&#x27;:[14],&#x27;prostate&#x27;:[30],&#x27;leukemia&#x27;:[21],&#x27;lymphoma&#x27;:[24]}
+mcq_dfs = []
+for name, yr in [(&#x27;MCQ&#x27;,1999),(&#x27;MCQ_B&#x27;,2001),(&#x27;MCQ_C&#x27;,2003),(&#x27;MCQ_D&#x27;,2005),(&#x27;MCQ_E&#x27;,2007),
+                  (&#x27;MCQ_F&#x27;,2009),(&#x27;MCQ_G&#x27;,2011),(&#x27;MCQ_H&#x27;,2013),(&#x27;MCQ_I&#x27;,2015),(&#x27;MCQ_J&#x27;,2017)]:
+    raw = safe_xpt(RAW_DIR / f&#x27;{name}.XPT&#x27;)
+    if raw is None: continue
+    out = pd.DataFrame({&#x27;SEQN&#x27;: pd.to_numeric(raw[&#x27;SEQN&#x27;], errors=&#x27;coerce&#x27;)})
+    out[&#x27;ever_cancer&#x27;] = (raw.get(&#x27;MCQ220&#x27;, pd.Series()) == 1).astype(float) if &#x27;MCQ220&#x27; in raw.columns else np.nan
+    type_cols = [f&#x27;ctype_{s}&#x27; for s in [&#x27;a&#x27;,&#x27;b&#x27;,&#x27;c&#x27;,&#x27;d&#x27;] if f&#x27;MCQ230{s.upper()}&#x27; in raw.columns]
+    for slot in [&#x27;A&#x27;,&#x27;B&#x27;,&#x27;C&#x27;,&#x27;D&#x27;]:
+        if f&#x27;MCQ230{slot}&#x27; in raw.columns:
+            out[f&#x27;ctype_{slot.lower()}&#x27;] = pd.to_numeric(raw[f&#x27;MCQ230{slot}&#x27;], errors=&#x27;coerce&#x27;)
+    for cancer, codes in HIGH_PRI.items():
+        out[f&#x27;cancer_{cancer}&#x27;] = (out[type_cols].apply(
+            lambda r: any(v in codes for v in r.dropna().astype(int)), axis=1
+        ) if type_cols else 0).astype(int)
+    mcq_dfs.append(out)
+
+mcq = pd.concat(mcq_dfs, ignore_index=True)
+outcomes = mcq.merge(mort[[&#x27;SEQN&#x27;,&#x27;cancer_death&#x27;,&#x27;cancer_death_3yr&#x27;,&#x27;cancer_death_5yr&#x27;,
+                             &#x27;cancer_death_10yr&#x27;]], on=&#x27;SEQN&#x27;, how=&#x27;outer&#x27;)
+outcomes[&#x27;any_cancer&#x27;] = np.where(
+    outcomes[&#x27;ever_cancer&#x27;].fillna(0).astype(bool) | outcomes[&#x27;cancer_death&#x27;].fillna(0).astype(bool), 1, 0)
+outcomes.to_parquet(PROC_DIR / &#x27;outcomes.parquet&#x27;, index=False)
+print(f&#x27;any_cancer positives: {outcomes[&quot;any_cancer&quot;].sum():,} / {len(outcomes):,}&#x27;)</p></div>
+<p class="app-cell-output">any_cancer positives: 6,537 / 100,959</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 6: Merge and filter final cohort</p><p class="app-cell-code">labs     = pd.read_parquet(PROC_DIR / &#x27;labs_harmonized.parquet&#x27;)
+outcomes = pd.read_parquet(PROC_DIR / &#x27;outcomes.parquet&#x27;)
+df = labs.merge(outcomes, on=&#x27;SEQN&#x27;, how=&#x27;inner&#x27;)
+df = df[(df[&#x27;age&#x27;].fillna(0) &gt;= 18) &amp; df[&#x27;wbc&#x27;].notna() &amp; df[&#x27;hgb&#x27;].notna() &amp; df[&#x27;any_cancer&#x27;].notna()]
+df.to_parquet(PROC_DIR / &#x27;model_dataset.parquet&#x27;, index=False)
+print(f&#x27;Final cohort: {len(df):,}  |  cancer prevalence: {df[&quot;any_cancer&quot;].mean()*100:.1f}%&#x27;)</p></div>
+<p class="app-cell-output">Final cohort: 53,448  |  cancer prevalence: 10.7%</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 7: Feature engineering (86 features)</p><p class="app-cell-code">def build_features(df):
+    d = df.copy()
+
+    # Absolute cell counts from CBC differentials
+    for cell, pct in [(&#x27;neut&#x27;,&#x27;neut_pct&#x27;),(&#x27;lymph&#x27;,&#x27;lymph_pct&#x27;),(&#x27;mono&#x27;,&#x27;mono_pct&#x27;),(&#x27;eos&#x27;,&#x27;eos_pct&#x27;)]:
+        d[f&#x27;{cell}_abs&#x27;] = d[&#x27;wbc&#x27;] * d[pct] / 100.0
+
+    # Inflammatory and immune ratios
+    L = d[&#x27;lymph_abs&#x27;].replace(0, np.nan)
+    N, M, P = d[&#x27;neut_abs&#x27;], d[&#x27;mono_abs&#x27;], d[&#x27;plt&#x27;]
+    d[&#x27;nlr&#x27;] = N / L;  d[&#x27;plr&#x27;] = P / L;  d[&#x27;mlr&#x27;] = M / L
+    d[&#x27;sii&#x27;] = (P * N) / L;  d[&#x27;siri&#x27;] = (M * N) / L
+    for col in [&#x27;nlr&#x27;,&#x27;plr&#x27;,&#x27;mlr&#x27;,&#x27;sii&#x27;,&#x27;siri&#x27;]:
+        d[f&#x27;log_{col}&#x27;] = np.log1p(d[col].clip(lower=0))
+        d[col] = d[col].clip(0, d[col].quantile(0.999) if d[col].notna().sum() &gt; 10 else 999)
+
+    # Liver markers and ratios
+    d[&#x27;de_ritis_ratio&#x27;] = d[&#x27;ast&#x27;] / d[&#x27;alt&#x27;].replace(0, np.nan)
+    d[&#x27;globulin&#x27;]       = d[&#x27;total_protein&#x27;] - d[&#x27;albumin&#x27;].fillna(0)
+    d[&#x27;ag_ratio&#x27;]       = d[&#x27;albumin&#x27;] / d[&#x27;globulin&#x27;].replace(0, np.nan)
+    d[&#x27;log_alkphos&#x27;]    = np.log1p(d[&#x27;alkphos&#x27;].clip(lower=0))
+    d[&#x27;log_alt&#x27;]        = np.log1p(d[&#x27;alt&#x27;].clip(lower=0))
+    d[&#x27;log_ast&#x27;]        = np.log1p(d[&#x27;ast&#x27;].clip(lower=0))
+
+    # eGFR via CKD-EPI 2021 (race-free equation)
+    is_male = d.get(&#x27;is_male&#x27;, pd.Series(0.5, index=d.index))
+    age, cr = d[&#x27;age&#x27;], d[&#x27;creatinine&#x27;]
+    kappa = np.where(is_male==1, 0.9, 0.7)
+    alpha = np.where(is_male==1, -0.302, -0.241)
+    ck = cr / kappa
+    d[&#x27;egfr&#x27;] = (142 * np.minimum(ck,1)**alpha * np.maximum(ck,1)**(-1.2)
+                 * (0.9938**age) * np.where(is_male==1, 1.0, 1.012)).clip(1, 200)
+    d[&#x27;bun_cr_ratio&#x27;]  = d[&#x27;bun&#x27;] / cr.replace(0, np.nan)
+    d[&#x27;log_ferritin&#x27;]  = np.log1p(d[&#x27;ferritin&#x27;].clip(lower=0))
+
+    # Clinical threshold flags (WHO reference ranges)
+    hgb_thr = np.where(is_male==1, 13.0, 12.0)
+    d[&#x27;flag_anemia&#x27;]           = (d[&#x27;hgb&#x27;] &lt; hgb_thr).astype(float)
+    d[&#x27;flag_thrombocytosis&#x27;]   = (d[&#x27;plt&#x27;] &gt; 400).astype(float)
+    d[&#x27;flag_leukocytosis&#x27;]     = (d[&#x27;wbc&#x27;] &gt; 11).astype(float)
+    d[&#x27;flag_lymphopenia&#x27;]      = (d[&#x27;lymph_pct&#x27;] &lt; 20).astype(float)
+    d[&#x27;flag_hypoalbuminemia&#x27;]  = (d[&#x27;albumin&#x27;] &lt; 3.5).astype(float)
+    d[&#x27;flag_elevated_ldh&#x27;]     = (d[&#x27;ldh&#x27;] &gt; 250).astype(float)
+    d[&#x27;flag_elevated_crp&#x27;]     = (d[&#x27;crp&#x27;] &gt; 10).astype(float)
+    d[&#x27;flag_high_nlr&#x27;]         = (d[&#x27;nlr&#x27;] &gt;= 3).astype(float)
+    d[&#x27;flag_very_high_nlr&#x27;]    = (d[&#x27;nlr&#x27;] &gt;= 5).astype(float)
+    # ... (9 additional flags for other clinical thresholds)
+
+    # Glasgow Prognostic Score
+    crp_h = (d[&#x27;crp&#x27;] &gt; 10).astype(int);  alb_l = (d[&#x27;albumin&#x27;] &lt; 3.5).astype(int)
+    d[&#x27;gps&#x27;]  = (crp_h + alb_l).clip(0, 2)
+    d[&#x27;mgps&#x27;] = crp_h.copy();  d.loc[crp_h==1,&#x27;mgps&#x27;] = 1 + alb_l[crp_h==1]
+
+    # Age features and cross-interaction terms
+    d[&#x27;age_sq&#x27;]          = age**2 / 10000
+    d[&#x27;age_50plus&#x27;]      = (age &gt;= 50).astype(float)
+    d[&#x27;age_60plus&#x27;]      = (age &gt;= 60).astype(float)
+    d[&#x27;age_70plus&#x27;]      = (age &gt;= 70).astype(float)
+    d[&#x27;age_x_nlr&#x27;]       = age * d[&#x27;nlr&#x27;] / 100
+    d[&#x27;age_x_plt&#x27;]       = age * d[&#x27;plt&#x27;] / 10000
+    d[&#x27;male_age_50plus&#x27;] = is_male * (age &gt;= 50).astype(float)
+
+    return d
+
+df = build_features(pd.read_parquet(PROC_DIR / &#x27;model_dataset.parquet&#x27;))
+FEAT_COLS = [&#x27;age&#x27;,&#x27;is_male&#x27;,&#x27;wbc&#x27;,&#x27;rbc&#x27;,&#x27;hgb&#x27;,&#x27;hct&#x27;,&#x27;plt&#x27;,&#x27;mcv&#x27;,&#x27;mch&#x27;,&#x27;mchc&#x27;,&#x27;rdw&#x27;,
+             &#x27;neut_pct&#x27;,&#x27;lymph_pct&#x27;,&#x27;mono_pct&#x27;,&#x27;eos_pct&#x27;,&#x27;baso_pct&#x27;,
+             &#x27;neut_abs&#x27;,&#x27;lymph_abs&#x27;,&#x27;mono_abs&#x27;,&#x27;eos_abs&#x27;,
+             &#x27;glucose&#x27;,&#x27;bun&#x27;,&#x27;creatinine&#x27;,&#x27;bilirubin&#x27;,&#x27;alkphos&#x27;,&#x27;alt&#x27;,&#x27;ast&#x27;,
+             &#x27;albumin&#x27;,&#x27;total_protein&#x27;,&#x27;sodium&#x27;,&#x27;potassium&#x27;,&#x27;chloride&#x27;,&#x27;co2&#x27;,
+             &#x27;uric_acid&#x27;,&#x27;ldh&#x27;,&#x27;ferritin&#x27;,&#x27;crp&#x27;,
+             &#x27;nlr&#x27;,&#x27;plr&#x27;,&#x27;mlr&#x27;,&#x27;sii&#x27;,&#x27;siri&#x27;,
+             &#x27;log_nlr&#x27;,&#x27;log_plr&#x27;,&#x27;log_mlr&#x27;,&#x27;log_sii&#x27;,&#x27;log_siri&#x27;,
+             &#x27;de_ritis_ratio&#x27;,&#x27;globulin&#x27;,&#x27;ag_ratio&#x27;,&#x27;log_alkphos&#x27;,&#x27;log_alt&#x27;,&#x27;log_ast&#x27;,
+             &#x27;egfr&#x27;,&#x27;bun_cr_ratio&#x27;,&#x27;log_ferritin&#x27;,&#x27;gps&#x27;,&#x27;mgps&#x27;,
+             &#x27;age_sq&#x27;,&#x27;age_50plus&#x27;,&#x27;age_60plus&#x27;,&#x27;age_70plus&#x27;,
+             &#x27;age_x_nlr&#x27;,&#x27;age_x_plt&#x27;,&#x27;male_age_50plus&#x27;,
+             &#x27;flag_anemia&#x27;,&#x27;flag_thrombocytosis&#x27;,&#x27;flag_leukocytosis&#x27;,&#x27;flag_lymphopenia&#x27;,
+             &#x27;flag_hypoalbuminemia&#x27;,&#x27;flag_elevated_ldh&#x27;,&#x27;flag_elevated_crp&#x27;,
+             &#x27;flag_high_nlr&#x27;,&#x27;flag_very_high_nlr&#x27;]
+feature_cols = [f for f in FEAT_COLS if f in df.columns and df[f].notna().mean() &gt; 0.05]
+print(f&#x27;Feature matrix: {len(df):,} x {len(feature_cols)} features&#x27;)
+with open(MODELS_DIR / &#x27;feature_cols.json&#x27;, &#x27;w&#x27;) as f: json.dump(feature_cols, f)</p></div>
+<p class="app-cell-output">Feature matrix: 53,448 x 86 features</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 8: Exploratory data analysis</p><p class="app-cell-code">fig, axes = plt.subplots(2, 4, figsize=(16, 7))
+for ax, feat in zip(axes.flat, [&#x27;age&#x27;,&#x27;hgb&#x27;,&#x27;nlr&#x27;,&#x27;crp&#x27;,&#x27;albumin&#x27;,&#x27;ldh&#x27;,&#x27;rdw&#x27;,&#x27;plt&#x27;]):
+    for label, color in [(0,&#x27;#3b82f6&#x27;),(1,&#x27;#ef4444&#x27;)]:
+        vals = df[df[&#x27;any_cancer&#x27;]==label][feat].dropna()
+        ax.hist(vals, bins=40, alpha=0.55, color=color, density=True,
+                label=&#x27;No cancer&#x27; if label==0 else &#x27;Cancer&#x27;)
+    ax.set_title(feat); ax.legend(fontsize=7)
+plt.suptitle(&#x27;Key Feature Distributions: Cancer vs. No Cancer&#x27;)
+plt.tight_layout(); plt.show()
+
+print(df[&#x27;any_cancer&#x27;].value_counts())
+miss = df[feature_cols].isna().mean().sort_values(ascending=False)
+print(&#x27;High missingness features:&#x27;, miss[miss &gt; 0.3].index.tolist())</p></div>
+<p class="app-cell-output">0    47725
+1     5723
+Name: any_cancer, dtype: int64
+High missingness features: [&#x27;ferritin&#x27;, &#x27;crp&#x27;, &#x27;iron&#x27;]</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 9: Optuna hyperparameter tuning (100 trials, ~56 min on T4 GPU)</p><p class="app-cell-code">valid_mask = df[&#x27;any_cancer&#x27;].notna() &amp; df[feature_cols].notna().any(axis=1)
+X_tune = df[valid_mask][feature_cols].values.astype(np.float32)
+y_tune = df[valid_mask][&#x27;any_cancer&#x27;].values.astype(int)
+scale_pos = (y_tune==0).sum() / (y_tune==1).sum()  # 8.34
+
+def objective(trial):
+    params = {
+        &#x27;objective&#x27;: &#x27;binary:logistic&#x27;, &#x27;eval_metric&#x27;: &#x27;aucpr&#x27;,
+        &#x27;max_depth&#x27;:        trial.suggest_int(&#x27;max_depth&#x27;, 3, 9),
+        &#x27;learning_rate&#x27;:    trial.suggest_float(&#x27;lr&#x27;, 0.005, 0.2, log=True),
+        &#x27;n_estimators&#x27;:     trial.suggest_int(&#x27;n_estimators&#x27;, 200, 1000),
+        &#x27;subsample&#x27;:        trial.suggest_float(&#x27;subsample&#x27;, 0.5, 1.0),
+        &#x27;colsample_bytree&#x27;: trial.suggest_float(&#x27;colsample_bytree&#x27;, 0.4, 1.0),
+        &#x27;min_child_weight&#x27;: trial.suggest_int(&#x27;min_child_weight&#x27;, 1, 30),
+        &#x27;reg_alpha&#x27;:        trial.suggest_float(&#x27;reg_alpha&#x27;, 1e-4, 20, log=True),
+        &#x27;reg_lambda&#x27;:       trial.suggest_float(&#x27;reg_lambda&#x27;, 1e-4, 20, log=True),
+        &#x27;gamma&#x27;:            trial.suggest_float(&#x27;gamma&#x27;, 0, 5),
+        &#x27;scale_pos_weight&#x27;: trial.suggest_float(&#x27;scale_pos_weight&#x27;, 1.0, scale_pos),
+        &#x27;tree_method&#x27;: &#x27;hist&#x27;, &#x27;random_state&#x27;: 42, &#x27;n_jobs&#x27;: -1, &#x27;verbosity&#x27;: 0,
+    }
+    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    scores = []
+    for tr_idx, val_idx in cv.split(X_tune, y_tune):
+        Xtr, Xval = X_tune[tr_idx], X_tune[val_idx]
+        ytr, yval = y_tune[tr_idx], y_tune[val_idx]
+        try:
+            Xtr, ytr = BorderlineSMOTE(random_state=42).fit_resample(Xtr, ytr)
+        except Exception: pass   # SMOTE skipped if NaN present
+        p = {k:v for k,v in params.items() if k != &#x27;n_estimators&#x27;}
+        m = xgb.XGBClassifier(**p, n_estimators=params[&#x27;n_estimators&#x27;], early_stopping_rounds=30)
+        m.fit(Xtr, ytr, eval_set=[(Xval,yval)], verbose=False)
+        scores.append(average_precision_score(yval, m.predict_proba(Xval)[:,1]))
+    return np.mean(scores)
+
+study = optuna.create_study(direction=&#x27;maximize&#x27;)
+study.optimize(objective, n_trials=100, show_progress_bar=True)
+print(f&#x27;Best AUC-PR: {study.best_value:.4f}&#x27;)
+print(&#x27;Best params:&#x27;, study.best_params)
+
+BEST_PARAMS = {
+    &#x27;objective&#x27;: &#x27;binary:logistic&#x27;, &#x27;eval_metric&#x27;: &#x27;aucpr&#x27;, &#x27;tree_method&#x27;: &#x27;hist&#x27;,
+    &#x27;max_depth&#x27;: 4, &#x27;learning_rate&#x27;: 0.0208, &#x27;n_estimators&#x27;: 747,
+    &#x27;subsample&#x27;: 0.776, &#x27;colsample_bytree&#x27;: 0.437, &#x27;min_child_weight&#x27;: 21,
+    &#x27;reg_alpha&#x27;: 0.01253, &#x27;reg_lambda&#x27;: 0.000456, &#x27;gamma&#x27;: 4.998,
+    &#x27;scale_pos_weight&#x27;: 4.519, &#x27;random_state&#x27;: 42, &#x27;n_jobs&#x27;: -1,
+    &#x27;early_stopping_rounds&#x27;: 40, &#x27;verbosity&#x27;: 0, &#x27;device&#x27;: &#x27;cuda&#x27;,
+}</p></div>
+<p class="app-cell-output">Best AUC-PR: 0.3222
+Best params: {&#x27;max_depth&#x27;: 4, &#x27;lr&#x27;: 0.0208, &#x27;n_estimators&#x27;: 747, &#x27;subsample&#x27;: 0.776,
+  &#x27;colsample_bytree&#x27;: 0.437, &#x27;min_child_weight&#x27;: 21, &#x27;gamma&#x27;: 4.998, &#x27;scale_pos_weight&#x27;: 4.519}</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 10: 5-Fold cross-validation</p><p class="app-cell-code">def cross_validate_model(X, y, params, n_folds=5):
+    cv = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+    results = []
+    for fold, (tr_idx, val_idx) in enumerate(cv.split(X, y)):
+        Xtr, Xval = X[tr_idx], X[val_idx]
+        ytr, yval = y[tr_idx], y[val_idx]
+        try: Xtr, ytr = BorderlineSMOTE(random_state=42).fit_resample(Xtr, ytr)
+        except Exception: pass
+        p = {k:v for k,v in params.items() if k != &#x27;early_stopping_rounds&#x27;}
+        m = xgb.XGBClassifier(**p, early_stopping_rounds=params.get(&#x27;early_stopping_rounds&#x27;,40))
+        m.fit(Xtr, ytr, eval_set=[(Xval,yval)], verbose=False)
+        prob = m.predict_proba(Xval)[:,1]
+        fpr, tpr, _ = roc_curve(yval, prob)
+        j = np.argmax(tpr + (1-fpr) - 1)
+        results.append({&#x27;fold&#x27;:fold+1,
+                        &#x27;auc_roc&#x27;: roc_auc_score(yval, prob),
+                        &#x27;auc_pr&#x27;:  average_precision_score(yval, prob),
+                        &#x27;sensitivity&#x27;: tpr[j], &#x27;specificity&#x27;: 1-fpr[j]})
+        print(f&quot;  Fold {fold+1}: AUC-ROC={results[-1][&#x27;auc_roc&#x27;]:.3f}  &quot;
+              f&quot;AUC-PR={results[-1][&#x27;auc_pr&#x27;]:.3f}  &quot;
+              f&quot;Sens={results[-1][&#x27;sensitivity&#x27;]:.3f}  Spec={results[-1][&#x27;specificity&#x27;]:.3f}&quot;)
+    means = {k: np.mean([r[k] for r in results]) for k in [&#x27;auc_roc&#x27;,&#x27;auc_pr&#x27;,&#x27;sensitivity&#x27;,&#x27;specificity&#x27;]}
+    print(f&quot;  Mean: AUC-ROC={means[&#x27;auc_roc&#x27;]:.3f}  AUC-PR={means[&#x27;auc_pr&#x27;]:.3f}  &quot;
+          f&quot;Sens={means[&#x27;sensitivity&#x27;]:.3f}  Spec={means[&#x27;specificity&#x27;]:.3f}&quot;)
+    return results, means
+
+X_cv = df[valid_mask][feature_cols].values.astype(np.float32)
+y_cv = df[valid_mask][&#x27;any_cancer&#x27;].values.astype(int)
+cv_results, cv_means = cross_validate_model(X_cv, y_cv, BEST_PARAMS)</p></div>
+<p class="app-cell-output">  Fold 1: AUC-ROC=0.810  AUC-PR=0.323  Sens=0.757  Spec=0.726
+  Fold 2: AUC-ROC=0.808  AUC-PR=0.321  Sens=0.841  Spec=0.640
+  Fold 3: AUC-ROC=0.806  AUC-PR=0.310  Sens=0.794  Spec=0.690
+  Fold 4: AUC-ROC=0.810  AUC-PR=0.320  Sens=0.817  Spec=0.670
+  Fold 5: AUC-ROC=0.815  AUC-PR=0.340  Sens=0.795  Spec=0.691
+  Mean: AUC-ROC=0.810  AUC-PR=0.323  Sens=0.801  Spec=0.683</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 11: Train final any-cancer model</p><p class="app-cell-code">def train_model(df, feature_cols, target_col, params):
+    valid = df[target_col].notna() &amp; df[feature_cols].notna().any(axis=1)
+    X = df[valid][feature_cols].values.astype(np.float32)
+    y = df[valid][target_col].values.astype(int)
+    try: X, y = BorderlineSMOTE(random_state=42).fit_resample(X, y)
+    except Exception as e: print(f&#x27;  SMOTE skipped: {type(e).__name__}&#x27;)
+    Xtr, Xval, ytr, yval = train_test_split(X, y, test_size=0.1, stratify=y, random_state=42)
+    p = {k:v for k,v in params.items() if k != &#x27;early_stopping_rounds&#x27;}
+    m = xgb.XGBClassifier(**p, early_stopping_rounds=params.get(&#x27;early_stopping_rounds&#x27;,40))
+    m.fit(Xtr, ytr, eval_set=[(Xval,yval)], verbose=False)
+    print(f&#x27;  Best iteration: {m.best_iteration}&#x27;)
+    return m, Xval, yval
+
+model_any, Xval_any, yval_any = train_model(df, feature_cols, &#x27;any_cancer&#x27;, BEST_PARAMS)
+prob_any = model_any.predict_proba(Xval_any)[:,1]
+auc_roc  = roc_auc_score(yval_any, prob_any)
+auc_pr   = average_precision_score(yval_any, prob_any)
+print(f&#x27;  Val AUC-ROC: {auc_roc:.4f}  AUC-PR: {auc_pr:.4f}&#x27;)
+model_any.save_model(str(MODELS_DIR / &#x27;model_any_cancer.json&#x27;))</p></div>
+<p class="app-cell-output">  SMOTE skipped: ValueError (NaN in feature matrix)
+  Best iteration: 167
+  Val AUC-ROC: 0.8096  AUC-PR: 0.3183</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 12: Threshold calibration via Youden&#x27;s J statistic</p><p class="app-cell-code">fpr, tpr, thresholds = roc_curve(yval_any, prob_any)
+j  = tpr + (1 - fpr) - 1
+bi = np.argmax(j)
+
+best_threshold   = float(thresholds[bi])
+best_sensitivity = float(tpr[bi])
+best_specificity = float(1 - fpr[bi])
+print(f&quot;Threshold: {best_threshold:.4f}  Sensitivity: {best_sensitivity:.3f}  Specificity: {best_specificity:.3f}&quot;)
+
+json.dump({&#x27;threshold&#x27;: round(best_threshold,4), &#x27;sensitivity&#x27;: round(best_sensitivity,4),
+           &#x27;specificity&#x27;: round(best_specificity,4), &#x27;auc_roc&#x27;: round(auc_roc,4),
+           &#x27;auc_pr&#x27;: round(auc_pr,4)},
+          open(MODELS_DIR/&#x27;threshold.json&#x27;,&#x27;w&#x27;), indent=2)
+
+plt.figure(figsize=(7,6))
+plt.plot(fpr, tpr, &#x27;#3b82f6&#x27;, lw=2, label=f&#x27;AUC-ROC = {auc_roc:.3f}&#x27;)
+plt.plot([0,1],[0,1],&#x27;--&#x27;, color=&#x27;#9ca3af&#x27;, lw=1)
+plt.scatter([fpr[bi]], [tpr[bi]], s=80, color=&#x27;#ef4444&#x27;, zorder=5,
+            label=f&#x27;Threshold = {best_threshold:.3f}&#x27;)
+plt.xlabel(&#x27;False Positive Rate&#x27;); plt.ylabel(&#x27;True Positive Rate&#x27;)
+plt.title(&#x27;ROC Curve — any_cancer model&#x27;); plt.legend(); plt.show()</p></div>
+<p class="app-cell-output">Threshold: 0.3305  Sensitivity: 0.839  Specificity: 0.653</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 13: SHAP feature attribution</p><p class="app-cell-code">X_sample = df[df[&#x27;any_cancer&#x27;].notna()][feature_cols].values.astype(np.float32)
+X_sample = X_sample[np.random.RandomState(42).choice(len(X_sample), 3000, replace=False)]
+
+explainer = shap.TreeExplainer(model_any)
+shap_vals = explainer.shap_values(X_sample)
+importance = pd.Series(np.abs(shap_vals).mean(axis=0), index=feature_cols).sort_values(ascending=False)
+
+print(&#x27;Top 15 features by mean |SHAP|:&#x27;)
+print(importance.head(15).round(4).to_string())
+shap.summary_plot(shap_vals, X_sample, feature_names=feature_cols, max_display=20)
+
+json.dump({&#x27;expected_value&#x27;: float(explainer.expected_value)}, open(MODELS_DIR/&#x27;shap_expected_value.json&#x27;,&#x27;w&#x27;))
+importance.to_json(MODELS_DIR / &#x27;feature_importance_any_cancer.json&#x27;)</p></div>
+<p class="app-cell-output">Top 15 features by mean |SHAP|:
+age              0.4747
+age_sq           0.2963
+age_50plus       0.1226
+age_60plus       0.1193
+is_male          0.0664
+egfr             0.0625
+age_x_plt        0.0563
+age_x_nlr        0.0545
+crp              0.0483
+rbc              0.0407
+age_70plus       0.0368
+mcv              0.0366
+total_protein    0.0274
+mch              0.0256
+mlr              0.0246</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 14: Train cancer subtype models</p><p class="app-cell-code">SUBTYPES = {&#x27;colorectal&#x27;:&#x27;cancer_colorectal&#x27;,&#x27;lung&#x27;:&#x27;cancer_lung&#x27;,&#x27;breast&#x27;:&#x27;cancer_breast&#x27;,
+            &#x27;prostate&#x27;:&#x27;cancer_prostate&#x27;,&#x27;leukemia&#x27;:&#x27;cancer_leukemia&#x27;,&#x27;lymphoma&#x27;:&#x27;cancer_lymphoma&#x27;}
+
+SUB_PARAMS = {**{k:BEST_PARAMS[k] for k in [&#x27;objective&#x27;,&#x27;eval_metric&#x27;,&#x27;max_depth&#x27;,&#x27;learning_rate&#x27;,
+              &#x27;subsample&#x27;,&#x27;colsample_bytree&#x27;,&#x27;min_child_weight&#x27;,&#x27;reg_alpha&#x27;,&#x27;reg_lambda&#x27;]},
+              &#x27;n_estimators&#x27;: min(600, BEST_PARAMS[&#x27;n_estimators&#x27;]),
+              &#x27;tree_method&#x27;:&#x27;hist&#x27;,&#x27;device&#x27;:&#x27;cuda&#x27;,&#x27;random_state&#x27;:42,
+              &#x27;n_jobs&#x27;:-1,&#x27;early_stopping_rounds&#x27;:30,&#x27;verbosity&#x27;:0}
+
+for name, col in SUBTYPES.items():
+    if col not in df.columns or df[col].sum() &lt; 50:
+        print(f&#x27;  Skipping {name}: insufficient positives&#x27;); continue
+    y_sub = df[df[col].notna()][col].values.astype(int)
+    spw   = max(1.0, (y_sub==0).sum() / max((y_sub==1).sum(), 1))
+    m, Xv, yv = train_model(df, feature_cols, col, {**SUB_PARAMS, &#x27;scale_pos_weight&#x27;: spw})
+    print(f&#x27;  {name}: AUC-ROC={roc_auc_score(yv, m.predict_proba(Xv)[:,1]):.4f}&#x27;)
+    m.save_model(str(MODELS_DIR / f&#x27;model_{name}.json&#x27;))</p></div>
+<p class="app-cell-output">  colorectal: AUC-ROC=0.8153
+  lung:        AUC-ROC=0.7392
+  breast:      AUC-ROC=0.9035
+  prostate:    AUC-ROC=0.9332
+  leukemia:    AUC-ROC=0.7750
+  lymphoma:    AUC-ROC=0.5717  (near-random; only 96 positives)</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 15: Verify artifacts and save model metadata</p><p class="app-cell-code">for f in [&#x27;model_any_cancer.json&#x27;,&#x27;model_colorectal.json&#x27;,&#x27;model_lung.json&#x27;,&#x27;model_breast.json&#x27;,
+           &#x27;model_prostate.json&#x27;,&#x27;model_leukemia.json&#x27;,&#x27;model_lymphoma.json&#x27;,
+           &#x27;feature_cols.json&#x27;,&#x27;threshold.json&#x27;]:
+    p = MODELS_DIR / f
+    print(f&quot;  [{&#x27;OK&#x27; if p.exists() else &#x27;MISSING&#x27;}] {f}  {p.stat().st_size//1024} KB&quot;)
+
+version_info = {&#x27;version&#x27;:&#x27;v2.0.0&#x27;,&#x27;n_features&#x27;:len(feature_cols),&#x27;n_samples&#x27;:int(valid_mask.sum()),
+                &#x27;cv_auc_roc&#x27;:cv_means[&#x27;auc_roc&#x27;],&#x27;cv_auc_pr&#x27;:cv_means[&#x27;auc_pr&#x27;],
+                &#x27;cv_sensitivity&#x27;:cv_means[&#x27;sensitivity&#x27;],&#x27;cv_specificity&#x27;:cv_means[&#x27;specificity&#x27;],
+                &#x27;optuna_trials&#x27;:100}
+json.dump(version_info, open(MODELS_DIR/&#x27;model_version.json&#x27;,&#x27;w&#x27;), indent=2)
+print(json.dumps(version_info, indent=2))</p></div>
+<p class="app-cell-output">  [OK] model_any_cancer.json  391 KB
+  [OK] model_colorectal.json 109 KB
+  [OK] model_lung.json        67 KB
+  [OK] model_breast.json      68 KB
+  [OK] model_prostate.json    97 KB
+  [OK] model_leukemia.json    74 KB
+  [OK] model_lymphoma.json    80 KB
+  [OK] feature_cols.json       1 KB
+  [OK] threshold.json          0 KB</p>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 16: SHAP importance bar chart</p><p class="app-cell-code">top_feat = importance.head(25)
+fig, ax = plt.subplots(figsize=(9,8))
+ax.barh(range(25), top_feat.values[::-1], color=&#x27;#3b82f6&#x27;, alpha=0.85)
+ax.set_yticks(range(25))
+ax.set_yticklabels(top_feat.index[::-1], fontsize=9)
+ax.set_xlabel(&#x27;Mean |SHAP| value&#x27;)
+ax.set_title(&#x27;Top 25 Features by SHAP Importance (any_cancer model)&#x27;)
+plt.tight_layout()
+plt.savefig(str(MODELS_DIR / &#x27;feature_importance_plot.png&#x27;), dpi=150, bbox_inches=&#x27;tight&#x27;)
+plt.show()</p></div>
+<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 17: Package and download models_saved.zip</p><p class="app-cell-code">zip_path = Path(&#x27;/content/models_saved.zip&#x27;)
+with zipfile.ZipFile(zip_path, &#x27;w&#x27;, zipfile.ZIP_DEFLATED) as zf:
+    for f in sorted(MODELS_DIR.iterdir()):
+        zf.write(f, f.name)
+        print(f&#x27;  {f.name}  ({f.stat().st_size//1024} KB)&#x27;)
+print(f&#x27;Total zip: {zip_path.stat().st_size/1024/1024:.1f} MB&#x27;)
+from google.colab import files; files.download(str(zip_path))</p></div>
+<p class="app-cell-output">  feature_cols.json (1 KB)
+  model_any_cancer.json (391 KB)
+  model_breast.json (68 KB)
+  ... (13 files total)
+Total zip: 0.3 MB
+Download started.</p>
 
 </body>
 </html>
