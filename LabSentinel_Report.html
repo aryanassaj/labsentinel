@@ -174,6 +174,15 @@
   svg text { font-family: Georgia, 'Times New Roman', serif; }
   .refs ol { counter-reset: none; }
   .refs li { font-size: 14px; margin-bottom: 10px; line-height: 1.7; }
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.87em;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: #111;
+  }
 </style>
 </head>
 <body>
@@ -185,7 +194,7 @@
 
 <div class="abstract">
   <strong>Abstract</strong>
-  This report presents LabSentinel, a machine learning system trained to detect pre-diagnostic cancer signals in routine blood laboratory panels. Using ten cycles of the National Health and Nutrition Examination Survey (NHANES, CDC, 1999 to 2018) linked to the NCHS National Death Index, a cohort of 53,448 adults was assembled with ground-truth cancer labels derived from both mortality follow-up and self-reported diagnosis. Feature engineering expanded 35 raw laboratory values into 86 clinically meaningful features, including inflammatory immune ratios, composite prognostic scores, log-transformed skewed markers, clinical threshold flags, and age-interaction terms. An XGBoost binary classifier with class imbalance addressed via Optuna-tuned scale_pos_weight (4.52) achieved an AUC-ROC of 0.810 and an AUC-PR of 0.323 on the any-cancer prediction task. At the Youden's J calibrated threshold of 33.1%, the model operates at 83.9% sensitivity and 65.3% specificity. Six cancer-subtype models (colorectal, lung, breast, prostate, leukemia, lymphoma) are trained in parallel and reported alongside the primary signal. SHAP (SHapley Additive exPlanations) path attribution provides per-patient explanations. The trained model is deployed as a fully self-contained, server-free HTML application with Gemini AI-powered lab report parsing and in-browser PDF report generation.
+  This report presents LabSentinel, a machine learning system trained to detect pre-diagnostic cancer signals in routine blood laboratory panels. Using ten cycles of the National Health and Nutrition Examination Survey (NHANES, CDC, 1999 to 2018) linked to the NCHS National Death Index, a cohort of 53,448 adults was assembled with ground-truth cancer labels derived from both mortality follow-up and self-reported diagnosis. Feature engineering expanded 35 raw laboratory values into 86 clinically meaningful features, including inflammatory immune ratios, composite prognostic scores, log-transformed skewed markers, clinical threshold flags, and age-interaction terms. An XGBoost binary classifier with class imbalance addressed via Optuna-tuned <code>scale_pos_weight</code> (4.52) achieved an AUC-ROC of 0.810 and an AUC-PR of 0.323 on the any-cancer prediction task. At the Youden's J calibrated threshold of 33.1%, the model operates at 83.9% sensitivity and 65.3% specificity. Six cancer-subtype models (colorectal, lung, breast, prostate, leukemia, lymphoma) are trained in parallel and reported alongside the primary signal. SHAP (SHapley Additive exPlanations) path attribution provides per-patient explanations. The trained model is deployed as a fully self-contained, server-free HTML application with Gemini AI-powered lab report parsing and in-browser PDF report generation.
 </div>
 
 <div class="note-box">
@@ -206,7 +215,7 @@ A striking property of many cancers is that they produce measurable systemic cha
 NHANES is uniquely positioned to support this kind of analysis. The survey collects full standardized blood panels from a nationally representative sample of Americans who then remain under mortality follow-up through the National Death Index. This structure creates a natural prospective cohort: participants whose blood was drawn at a routine exam, some of whom were subsequently found to have died of cancer within a fixed follow-up window. Blood draws that precede confirmed cancer deaths constitute ground-truth pre-diagnostic observations, the precise signal that a clinical screening tool would need to detect.
 </p>
 <p>
-LabSentinel is built on this foundation. The project contributions include: (1) a ten-cycle NHANES data pipeline with harmonized lab variable names across heterogeneous file formats; (2) an 86-feature engineering framework that mirrors validated clinical oncology scores; (3) a gradient-boosted tree model with Optuna-tuned scale_pos_weight class weighting and Youden's J threshold calibration; (4) SHAP-based per-patient explainability; and (5) a fully self-contained browser-based deployment with AI-powered lab report parsing for immediate practical use.
+LabSentinel is built on this foundation. The project contributions include: (1) a ten-cycle NHANES data pipeline with harmonized lab variable names across heterogeneous file formats; (2) an 86-feature engineering framework that mirrors validated clinical oncology scores; (3) a gradient-boosted tree model with Optuna-tuned <code>scale_pos_weight</code> class weighting and Youden's J threshold calibration; (4) SHAP-based per-patient explainability; and (5) a fully self-contained browser-based deployment with AI-powered lab report parsing for immediate practical use.
 </p>
 
 <hr class="section-rule">
@@ -226,13 +235,13 @@ For this project, ten consecutive survey cycles covering 1999 through 2018 were 
 Cancer labels were assembled from two independent sources with different temporal properties, which were then combined into a composite outcome variable.
 </p>
 <p>
-The first and most clinically meaningful source is the NCHS Linked Mortality Files. The National Center for Health Statistics links NHANES participants to the National Death Index, producing individual-level records that include whether the participant died, the primary cause of death (coded as broad categories where code 2 indicates malignant neoplasm), and the number of months elapsed from the NHANES exam to death or censoring. Nine mortality linkage files covering cycles through 2015 to 2016 were downloaded, each providing follow-up through 2019. Cancer deaths within 5 years of the blood draw (cancer_death_5yr) represent the purest pre-diagnostic signal: the participant had subclinical cancer at the time of their exam but did not yet know it. A total of 1,978 cancer deaths were confirmed through this linkage, with 740 occurring within five years of the exam date.
+The first and most clinically meaningful source is the NCHS Linked Mortality Files. The National Center for Health Statistics links NHANES participants to the National Death Index, producing individual-level records that include whether the participant died, the primary cause of death (coded as broad categories where code 2 indicates malignant neoplasm), and the number of months elapsed from the NHANES exam to death or censoring. Nine mortality linkage files covering cycles through 2015 to 2016 were downloaded, each providing follow-up through 2019. Cancer deaths within 5 years of the blood draw (<code>cancer_death_5yr</code>) represent the purest pre-diagnostic signal: the participant had subclinical cancer at the time of their exam but did not yet know it. A total of 1,978 cancer deaths were confirmed through this linkage, with 740 occurring within five years of the exam date.
 </p>
 <p>
 The second source is the MCQ self-report questions embedded within each NHANES cycle. Participants are asked whether they have ever been told by a doctor that they had cancer, what type of cancer, and at what age the diagnosis was made. This captures diagnosed-and-surviving cancer patients across all ten cycles. A total of 5,166 self-reported cancer diagnoses were recorded. While cross-sectional in design, this source dramatically expands the number of cancer-positive examples available for training.
 </p>
 <p>
-The composite outcome variable (any_cancer) is set to 1 for participants who reported a cancer diagnosis (MCQ220 = 1) or who confirmed cancer death in the mortality linkage (major_cod = 2). This yields 5,723 cancer-positive participants out of 53,448 total, a class prevalence of 10.7%.
+The composite outcome variable (<code>any_cancer</code>) is set to 1 for participants who reported a cancer diagnosis (<code>MCQ220</code> = 1) or who confirmed cancer death in the mortality linkage (<code>major_cod</code> = 2). This yields 5,723 cancer-positive participants out of 53,448 total, a class prevalence of 10.7%.
 </p>
 
 <h3>2.3 Laboratory Variables Collected</h3>
@@ -354,7 +363,7 @@ Across the CBC, biochemistry, iron, and CRP files, 35 raw laboratory measurement
 
 <h3>2.4 Inclusion Criteria and Exclusion</h3>
 <p>
-Participants were excluded from the final modeling dataset if they were under 18 years of age, if WBC or hemoglobin were missing (indicating no CBC was collected at the exam), or if the composite any_cancer label was null. These criteria reduced the raw merged dataset from over 100,000 survey records across all demographics to the 53,448-participant adult analytic cohort. Physiologically implausible laboratory values were hard-clipped to established reference bounds rather than imputed or deleted, preserving sample size while eliminating data entry errors.
+Participants were excluded from the final modeling dataset if they were under 18 years of age, if WBC or hemoglobin were missing (indicating no CBC was collected at the exam), or if the composite <code>any_cancer</code> label was null. These criteria reduced the raw merged dataset from over 100,000 survey records across all demographics to the 53,448-participant adult analytic cohort. Physiologically implausible laboratory values were hard-clipped to established reference bounds rather than imputed or deleted, preserving sample size while eliminating data entry errors.
 </p>
 
 <hr class="section-rule">
@@ -678,24 +687,24 @@ Fourth, ensemble tree methods have consistently outperformed neural networks on 
 
 <h3>5.2 Class Imbalance Handling</h3>
 <p>
-With only 10.7% cancer prevalence, an unconstrained classifier would achieve 89.3% accuracy by predicting no cancer for every patient. This naive solution is clinically useless. BorderlineSMOTE was attempted during training to generate synthetic cancer-positive examples by interpolating between minority-class samples in feature space. However, BorderlineSMOTE does not natively handle missing values, and the NHANES feature matrix contains NaN entries for lab values that were not ordered or not collected in a given survey cycle. As a result, SMOTE was skipped for all models. Class imbalance was instead addressed through XGBoost's scale_pos_weight parameter, which Optuna tuned to 4.52 -- meaning the model assigns roughly 4.5x more weight to cancer-positive training examples than to negatives. XGBoost handles missing values natively through learned default routing directions at each tree split, so no imputation was required and no samples were dropped.
+With only 10.7% cancer prevalence, an unconstrained classifier would achieve 89.3% accuracy by predicting no cancer for every patient. This naive solution is clinically useless. BorderlineSMOTE was attempted during training to generate synthetic cancer-positive examples by interpolating between minority-class samples in feature space. However, BorderlineSMOTE does not natively handle missing values, and the NHANES feature matrix contains NaN entries for lab values that were not ordered or not collected in a given survey cycle. As a result, SMOTE was skipped for all models. Class imbalance was instead addressed through XGBoost's <code>scale_pos_weight</code> parameter, which Optuna tuned to 4.52 -- meaning the model assigns roughly 4.5x more weight to cancer-positive training examples than to negatives. XGBoost handles missing values natively through learned default routing directions at each tree split, so no imputation was required and no samples were dropped.
 </p>
 
 <h3>5.3 Hyperparameter Optimization</h3>
 <p>
-Hyperparameters were tuned using Optuna Bayesian optimization over 100 trials. Each trial trained an XGBoost model under 3-fold stratified cross-validation with AUC-PR as the objective metric. The search space spanned max_depth (3 to 9), learning rate (0.005 to 0.2 log-scale), n_estimators (200 to 1000), subsample (0.5 to 1.0), colsample_bytree (0.4 to 1.0), min_child_weight (1 to 30), L1 and L2 regularization (1e-4 to 20 log-scale), gamma (0 to 5), and scale_pos_weight (1.0 to 8.34). The best trial achieved an AUC-PR of 0.3222 at the following configuration.
+Hyperparameters were tuned using Optuna Bayesian optimization over 100 trials. Each trial trained an XGBoost model under 3-fold stratified cross-validation with AUC-PR as the objective metric. The search space spanned <code>max_depth</code> (3 to 9), learning rate (0.005 to 0.2 log-scale), <code>n_estimators</code> (200 to 1000), <code>subsample</code> (0.5 to 1.0), <code>colsample_bytree</code> (0.4 to 1.0), <code>min_child_weight</code> (1 to 30), L1 and L2 regularization (1e-4 to 20 log-scale), gamma (0 to 5), and <code>scale_pos_weight</code> (1.0 to 8.34). The best trial achieved an AUC-PR of 0.3222 at the following configuration.
 </p>
 
 <table>
   <tr><th>Parameter</th><th>Tuned Value</th><th>Rationale</th></tr>
-  <tr><td>max_depth</td><td>4</td><td>Shallow trees prevent overfitting on the highly collinear age feature cluster</td></tr>
-  <tr><td>learning_rate</td><td>0.0208</td><td>Low learning rate offset by high n_estimators and early stopping</td></tr>
-  <tr><td>n_estimators</td><td>747 (early stop at 208)</td><td>Upper bound; training halted at 208 rounds on the any-cancer model</td></tr>
-  <tr><td>subsample</td><td>0.776</td><td>Row sampling per tree; adds variance reduction via bagging</td></tr>
-  <tr><td>colsample_bytree</td><td>0.437</td><td>Aggressive column sampling forces diversity across trees</td></tr>
-  <tr><td>min_child_weight</td><td>21</td><td>High value prevents splits on very small patient subgroups</td></tr>
+  <tr><td><code>max_depth</code></td><td>4</td><td>Shallow trees prevent overfitting on the highly collinear age feature cluster</td></tr>
+  <tr><td><code>learning_rate</code></td><td>0.0208</td><td>Low learning rate offset by high n_estimators and early stopping</td></tr>
+  <tr><td><code>n_estimators</code></td><td>747 (early stop at 208)</td><td>Upper bound; training halted at 208 rounds on the any-cancer model</td></tr>
+  <tr><td><code>subsample</code></td><td>0.776</td><td>Row sampling per tree; adds variance reduction via bagging</td></tr>
+  <tr><td><code>colsample_bytree</code></td><td>0.437</td><td>Aggressive column sampling forces diversity across trees</td></tr>
+  <tr><td><code>min_child_weight</code></td><td>21</td><td>High value prevents splits on very small patient subgroups</td></tr>
   <tr><td>gamma</td><td>4.998</td><td>High minimum split gain; strong regularization against spurious splits</td></tr>
-  <tr><td>scale_pos_weight</td><td>4.52</td><td>Upweights cancer-positive examples to compensate for 10.7% prevalence</td></tr>
+  <tr><td><code>scale_pos_weight</code></td><td>4.52</td><td>Upweights cancer-positive examples to compensate for 10.7% prevalence</td></tr>
   <tr><td>Early stopping rounds</td><td>40</td><td>Training halts when AUC-PR on held-out 10% fails to improve</td></tr>
 </table>
 
@@ -807,7 +816,7 @@ The AUC-PR of 0.323 should be interpreted in the context of the 10.7% class prev
 
 <h3>6.2 Cross-Validation</h3>
 <p>
-The model was evaluated using 5-fold stratified cross-validation to ensure performance estimates are not artifacts of a single train/validation split. Stratified folds preserve the 10.7% cancer prevalence in each fold. Class imbalance within each fold was handled via scale_pos_weight (4.52) rather than SMOTE, as the NHANES feature matrix contains missing values that prevented BorderlineSMOTE from executing. Validation folds always reflect true class prevalence. Results across all five folds are shown in Table 4.
+The model was evaluated using 5-fold stratified cross-validation to ensure performance estimates are not artifacts of a single train/validation split. Stratified folds preserve the 10.7% cancer prevalence in each fold. Class imbalance within each fold was handled via <code>scale_pos_weight</code> (4.52) rather than SMOTE, as the NHANES feature matrix contains missing values that prevented BorderlineSMOTE from executing. Validation folds always reflect true class prevalence. Results across all five folds are shown in Table 4.
 </p>
 
 <table>
