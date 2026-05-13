@@ -1,0 +1,6 @@
+{
+  "threshold": 0.106,
+  "sensitivity": 0.8322,
+  "specificity": 0.6692,
+  "target": "any_cancer"
+}

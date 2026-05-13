@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataAlpha — Internal Research Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1e293b;
+    --border: #1e2d45;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --accent: #6366f1;
+    --accent2: #8b5cf6;
+    --health: #ef4444;
+    --finance: #10b981;
+    --climate: #3b82f6;
+    --legal: #8b5cf6;
+    --infra: #f97316;
+    --wildcard: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===================== LOGIN GATE ===================== */
+  #loginGate {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #0a0f1e, #0d1b3e, #1a0533, #0a1628);
+    background-size: 400% 400%;
+    animation: gradientCycle 8s ease infinite;
+    transition: opacity 0.8s ease;
+  }
+  #loginGate.fade-out { opacity: 0; pointer-events: none; }
+
+  @keyframes gradientCycle {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* floating particles */
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: rgba(99,102,241,0.6);
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.5; }
+    100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+  }
+
+  .login-card {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 24px;
+    padding: 52px 48px;
+    width: 100%; max-width: 440px;
+    box-shadow: 0 0 80px rgba(99,102,241,0.15), 0 40px 80px rgba(0,0,0,0.5);
+    position: relative; z-index: 1;
+    animation: cardIn 0.7s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes cardIn {
+    from { transform: translateY(40px) scale(0.92); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .card-shake {
+    animation: shake 0.5s cubic-bezier(0.36,0.07,0.19,0.97) !important;
+  }
+  @keyframes shake {
+    10%,90%  { transform: translateX(-4px); }
+    20%,80%  { transform: translateX(6px); }
+    30%,50%,70% { transform: translateX(-8px); }
+    40%,60%  { transform: translateX(8px); }
+  }
+
+  /* DNA SVG logo */
+  .dna-logo {
+    width: 56px; height: 56px;
+    margin: 0 auto 20px;
+    display: block;
+  }
+
+  .login-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.2rem; font-weight: 800;
+    text-align: center;
+    background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .login-subtitle {
+    text-align: center; color: var(--muted);
+    font-size: 0.85rem; margin-bottom: 32px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+
+  /* team avatars */
+  .team-avatars {
+    display: flex; justify-content: center; gap: 10px; margin-bottom: 32px;
+  }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem;
+    border: 2px solid rgba(255,255,255,0.15);
+    position: relative; cursor: default;
+    transition: transform 0.2s;
+  }
+  .avatar:hover { transform: translateY(-3px); }
+  .avatar-a { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .avatar-j { background: linear-gradient(135deg, #10b981, #059669); }
+  .avatar-t { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+  .avatar-l { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+  .avatar-tooltip {
+    position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.8); color: #fff; font-size: 0.7rem;
+    padding: 2px 8px; border-radius: 4px; white-space: nowrap;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none;
+  }
+  .avatar:hover .avatar-tooltip { opacity: 1; }
+
+  .input-wrap {
+    position: relative; margin-bottom: 16px;
+  }
+  .pw-input {
+    width: 100%; padding: 14px 48px 14px 18px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 12px; color: var(--text);
+    font-family: 'JetBrains Mono', monospace; font-size: 1rem;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.1em;
+  }
+  .pw-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+  }
+  .pw-input::placeholder { letter-spacing: 0.05em; font-family: 'Inter', sans-serif; color: var(--muted); }
+  .eye-btn {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); transition: color 0.2s;
+    display: flex; align-items: center;
+  }
+  .eye-btn:hover { color: var(--text); }
+
+  .login-btn {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none; border-radius: 12px;
+    color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700; letter-spacing: 0.05em;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(99,102,241,0.5);
+  }
+  .login-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent);
+    transform: translateX(-100%); transition: transform 0.4s;
+  }
+  .login-btn:hover::after { transform: translateX(100%); }
+
+  .login-error {
+    color: #f87171; font-size: 0.82rem; text-align: center;
+    margin-top: 12px; opacity: 0; transition: opacity 0.2s;
+    min-height: 20px;
+  }
+  .login-error.show { opacity: 1; }
+
+  /* ===================== MAIN APP ===================== */
+  #mainApp { display: none; }
+  #mainApp.visible { display: block; animation: appIn 0.6s ease; }
+  @keyframes appIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+
+  /* HEADER */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,15,30,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .header-brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800;
+    color: var(--text); white-space: nowrap; text-decoration: none;
+  }
+  .header-brand .dna-sm { width: 32px; height: 32px; }
+
+  .search-wrap { flex: 1; max-width: 480px; margin: 0 auto; position: relative; }
+  #searchInput {
+    width: 100%; padding: 10px 16px 10px 42px;
+    background: rgba(30,41,59,0.8);
+    border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-family: 'Inter', sans-serif; font-size: 0.9rem;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #searchInput:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  }
+  #searchInput::placeholder { color: var(--muted); }
+  .search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--muted);
+  }
+
+  .header-right {
+    display: flex; align-items: center; gap: 16px; margin-left: auto;
+  }
+  .header-avatars { display: flex; gap: 6px; }
+  .header-avatars .avatar { width: 32px; height: 32px; font-size: 0.75rem; border-width: 1.5px; }
+  .header-meta {
+    font-size: 0.78rem; color: var(--muted); white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* HERO STATS */
+  .hero-stats {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex; gap: 0; overflow-x: auto;
+  }
+  .stat-item {
+    flex: 1; min-width: 120px;
+    padding: 8px 24px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-val {
+    font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+  /* CATEGORY FILTERS */
+  .filter-bar {
+    padding: 20px 32px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  .filter-pill {
+    padding: 7px 16px; border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted); font-size: 0.82rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+  }
+  .filter-pill:hover { color: var(--text); border-color: rgba(99,102,241,0.4); }
+  .filter-pill.active-all { background: linear-gradient(135deg, #6366f1, #8b5cf6); border-color: transparent; color: #fff; box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
+  .filter-pill.active-health  { background: var(--health);  border-color: transparent; color: #fff; box-shadow: 0 4px 16px rgba(239,68,68,0.4); }
+  .filter-pill.active-finance { background: var(--finance); border-color: transparent; color: #fff; box-shadow: 0 4px 16px rgba(16,185,129,0.4); }
+  .filter-pill.active-climate { background: var(--climate); border-color: transparent; color: #fff; box-shadow: 0 4px 16px rgba(59,130,246,0.4); }
+  .filter-pill.active-legal   { background: var(--legal);   border-color: transparent; color: #fff; box-shadow: 0 4px 16px rgba(139,92,246,0.4); }
+  .filter-pill.active-infra   { background: var(--infra);   border-color: transparent; color: #fff; box-shadow: 0 4px 16px rgba(249,115,22,0.4); }
+  .filter-pill.active-wildcard{ background: var(--wildcard); border-color: transparent; color: #fff; box-shadow: 0 4px 16px rgba(245,158,11,0.4); }
+
+  /* PROJECT GRID */
+  #projectGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 8px 32px 60px;
+  }
+  @media (max-width: 1100px) { #projectGrid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 700px)  { #projectGrid { grid-template-columns: 1fr; padding: 8px 16px 60px; } }
+
+  /* PROJECT CARD */
+  .project-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s;
+    position: relative;
+    animation: cardFadeIn 0.4s ease both;
+  }
+  @keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .project-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+  }
+  .project-card.hidden { display: none; }
+
+  .card-top-border { height: 4px; width: 100%; }
+  .card-body { padding: 20px 22px 18px; }
+
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .card-name {
+    font-family: 'Syne', sans-serif; font-size: 1.08rem; font-weight: 700;
+    color: #0f172a; line-height: 1.3;
+  }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .badge {
+    padding: 2px 9px; border-radius: 100px;
+    font-size: 0.67rem; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .badge-cat { color: #fff; }
+  .badge-diff { background: #f1f5f9; color: #475569; }
+  .badge-diff.easy   { background: #dcfce7; color: #166534; }
+  .badge-diff.medium { background: #fef9c3; color: #854d0e; }
+  .badge-diff.hard   { background: #fee2e2; color: #991b1b; }
+  .badge-diff.extreme{ background: #1e1b4b; color: #a5b4fc; }
+
+  .card-tagline { font-size: 0.8rem; color: #64748b; margin-bottom: 12px; line-height: 1.4; font-style: italic; }
+  .card-desc { font-size: 0.82rem; color: #334155; line-height: 1.6; margin-bottom: 14px; }
+
+  .db-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .db-chip {
+    padding: 3px 10px; border-radius: 6px;
+    background: #f1f5f9; color: #475569;
+    font-size: 0.7rem; font-family: 'JetBrains Mono', monospace;
+    border: 1px solid #e2e8f0;
+  }
+
+  .card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .market-size { font-size: 0.75rem; color: #0f172a; font-weight: 600; font-family: 'Syne', sans-serif; }
+  .time-to-mvp { font-size: 0.7rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace; }
+  .card-arrow {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #f1f5f9; color: #475569;
+    font-size: 1rem; transition: all 0.2s; flex-shrink: 0;
+  }
+  .project-card:hover .card-arrow {
+    background: var(--accent); color: #fff;
+    transform: translateX(3px);
+  }
+
+  /* ===================== MODAL ===================== */
+  #modalOverlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    display: none; align-items: flex-end; justify-content: center;
+    padding: 0;
+  }
+  #modalOverlay.open { display: flex; }
+  #modalBox {
+    background: var(--surface);
+    width: 100%; max-width: 860px;
+    max-height: 92vh;
+    border-radius: 24px 24px 0 0;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.34,1.2,0.64,1);
+    position: relative;
+  }
+  #modalOverlay.open #modalBox { transform: translateY(0); }
+
+  /* scrollbar */
+  #modalBox::-webkit-scrollbar { width: 6px; }
+  #modalBox::-webkit-scrollbar-track { background: transparent; }
+  #modalBox::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .modal-close {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; justify-content: flex-end;
+    padding: 16px 24px 0;
+    background: var(--surface);
+  }
+  .close-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 1.2rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; line-height: 1;
+  }
+  .close-btn:hover { background: #ef4444; border-color: #ef4444; }
+
+  .modal-header { padding: 8px 36px 24px; border-bottom: 1px solid var(--border); }
+  .modal-cat-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .modal-title {
+    font-family: 'Syne', sans-serif; font-size: 1.9rem; font-weight: 800;
+    color: var(--text); margin-bottom: 6px;
+  }
+  .modal-tagline { color: var(--muted); font-size: 0.9rem; font-style: italic; }
+
+  .modal-stats {
+    display: flex; gap: 24px; padding: 20px 36px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .mstat { text-align: center; }
+  .mstat-val { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; }
+  .mstat-key { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .modal-body { padding: 28px 36px 40px; }
+
+  .modal-section { margin-bottom: 28px; }
+  .section-title {
+    font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .section-text { color: #cbd5e1; font-size: 0.88rem; line-height: 1.75; }
+
+  .features-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+  @media (max-width: 600px) { .features-grid { grid-template-columns: 1fr; } }
+  .feature-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .feature-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+  .feature-name { font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .feature-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+  .crazy-features { list-style: none; }
+  .crazy-features li {
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 0.85rem; color: #e2e8f0; line-height: 1.6;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .crazy-features li:last-child { border-bottom: none; }
+  .crazy-features li::before { content: '⚡'; flex-shrink: 0; }
+
+  .wow-box {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1));
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 14px; padding: 20px 22px;
+    color: #c7d2fe; font-size: 0.88rem; line-height: 1.7;
+    position: relative; overflow: hidden;
+  }
+  .wow-box::before { content: '🤯'; font-size: 2rem; display: block; margin-bottom: 8px; }
+
+  .db-links { display: flex; flex-direction: column; gap: 8px; }
+  .db-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    text-decoration: none; color: #94a3b8;
+    font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .db-link:hover { border-color: var(--accent); color: #a5b4fc; }
+  .db-link-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .tech-stack { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tech-badge {
+    padding: 5px 12px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: #94a3b8;
+  }
+
+  /* Team Roles */
+  .team-roles-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+  @media (max-width: 600px) { .team-roles-grid { grid-template-columns: 1fr; } }
+  .team-role-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .team-role-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .team-role-name { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; color: var(--text); }
+  .team-role-title { font-size: 0.72rem; color: var(--muted); }
+  .team-role-tasks { list-style: none; }
+  .team-role-tasks li {
+    font-size: 0.77rem; color: #94a3b8; padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    line-height: 1.5;
+  }
+  .team-role-tasks li:last-child { border-bottom: none; }
+  .team-role-tasks li::before { content: '→ '; color: var(--accent); }
+
+  /* NO RESULTS */
+  #noResults {
+    grid-column: 1/-1; text-align: center; padding: 80px 20px;
+    color: var(--muted); display: none;
+  }
+  #noResults h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; margin-bottom: 8px; color: var(--text); }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================ LOGIN GATE ============================================================ -->
+<div id="loginGate">
+  <div class="login-card" id="loginCard">
+    <!-- DNA Helix SVG -->
+    <svg class="dna-logo" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="dnaG1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#818cf8"/>
+          <stop offset="100%" stop-color="#c084fc"/>
+        </linearGradient>
+      </defs>
+      <!-- left strand -->
+      <path d="M18 4 C18 14, 38 18, 38 28 C38 38, 18 42, 18 52" stroke="url(#dnaG1)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <!-- right strand -->
+      <path d="M38 4 C38 14, 18 18, 18 28 C18 38, 38 42, 38 52" stroke="url(#dnaG1)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <!-- rungs -->
+      <line x1="18" y1="10" x2="38" y2="46" stroke="rgba(192,132,252,0.35)" stroke-width="1.5" stroke-dasharray="2 4"/>
+      <circle cx="21" cy="14" r="3" fill="#6366f1" opacity="0.9"/>
+      <circle cx="35" cy="20" r="3" fill="#a855f7" opacity="0.9"/>
+      <circle cx="28" cy="28" r="3.5" fill="#818cf8"/>
+      <circle cx="21" cy="36" r="3" fill="#a855f7" opacity="0.9"/>
+      <circle cx="35" cy="42" r="3" fill="#6366f1" opacity="0.9"/>
+    </svg>
+
+    <h1 class="login-title">DataAlpha</h1>
+    <p class="login-subtitle">Internal Research Portal · Alpha Team</p>
+
+    <div class="team-avatars">
+      <div class="avatar avatar-a">A<span class="avatar-tooltip">Aryan</span></div>
+      <div class="avatar avatar-j">J<span class="avatar-tooltip">Jericho</span></div>
+      <div class="avatar avatar-t">T<span class="avatar-tooltip">Trenton</span></div>
+      <div class="avatar avatar-l">L<span class="avatar-tooltip">Luke</span></div>
+    </div>
+
+    <div class="input-wrap">
+      <input class="pw-input" id="pwInput" type="password" placeholder="Enter team password" autocomplete="off"/>
+      <button class="eye-btn" id="eyeBtn" type="button">
+        <svg id="eyeOpen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="eyeClosed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <button class="login-btn" id="loginBtn">Enter DataAlpha →</button>
+    <div class="login-error" id="loginError">⚠ Incorrect password. Alpha team only.</div>
+  </div>
+</div>
+
+<!-- ============================================================ MAIN APP ============================================================ -->
+<div id="mainApp">
+
+  <!-- HEADER -->
+  <header>
+    <a class="header-brand" href="#">
+      <svg class="dna-sm" viewBox="0 0 32 32" fill="none">
+        <defs><linearGradient id="dnaH" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#c084fc"/></linearGradient></defs>
+        <path d="M10 2 C10 9, 22 11, 22 16 C22 21, 10 23, 10 30" stroke="url(#dnaH)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M22 2 C22 9, 10 11, 10 16 C10 21, 22 23, 22 30" stroke="url(#dnaH)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="12" cy="8"  r="2" fill="#6366f1"/>
+        <circle cx="16" cy="16" r="2.5" fill="#818cf8"/>
+        <circle cx="20" cy="24" r="2" fill="#a855f7"/>
+      </svg>
+      DataAlpha
+    </a>
+
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="text" placeholder="Search projects, databases, categories..."/>
+    </div>
+
+    <div class="header-right">
+      <div class="header-avatars">
+        <div class="avatar avatar-a" style="width:32px;height:32px;font-size:0.75rem">A</div>
+        <div class="avatar avatar-j" style="width:32px;height:32px;font-size:0.75rem">J</div>
+        <div class="avatar avatar-t" style="width:32px;height:32px;font-size:0.75rem">T</div>
+        <div class="avatar avatar-l" style="width:32px;height:32px;font-size:0.75rem">L</div>
+      </div>
+      <span class="header-meta">20 Projects · 6 Categories</span>
+    </div>
+  </header>
+
+  <!-- HERO STATS -->
+  <div class="hero-stats">
+    <div class="stat-item"><div class="stat-val">20</div><div class="stat-label">Projects</div></div>
+    <div class="stat-item"><div class="stat-val">6</div><div class="stat-label">Categories</div></div>
+    <div class="stat-item"><div class="stat-val">15+</div><div class="stat-label">Databases</div></div>
+    <div class="stat-item"><div class="stat-val">~$500B</div><div class="stat-label">Market TAM</div></div>
+    <div class="stat-item"><div class="stat-val">100%</div><div class="stat-label">Free Data</div></div>
+    <div class="stat-item"><div class="stat-val">Open</div><div class="stat-label">Source</div></div>
+  </div>
+
+  <!-- FILTER PILLS -->
+  <div class="filter-bar">
+    <button class="filter-pill active-all" data-cat="all">All</button>
+    <button class="filter-pill" data-cat="health">🧬 Health</button>
+    <button class="filter-pill" data-cat="finance">💰 Finance</button>
+    <button class="filter-pill" data-cat="climate">🌍 Climate</button>
+    <button class="filter-pill" data-cat="legal">⚖️ Legal</button>
+    <button class="filter-pill" data-cat="infra">🏗️ Infrastructure</button>
+    <button class="filter-pill" data-cat="wildcard">🃏 Wild Card</button>
+  </div>
+
+  <!-- PROJECT GRID -->
+  <div id="projectGrid">
+    <div id="noResults">
+      <h3>No projects found</h3>
+      <p>Try a different search term or category</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================ MODAL ============================================================ -->
+<div id="modalOverlay">
+  <div id="modalBox">
+    <div class="modal-close"><button class="close-btn" id="closeModal">✕</button></div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+//  DATA
+// =====================================================================
+const PROJECTS = [
+
+// ──────────────── HEALTH ────────────────
+
+{
+  id: 'biosentinel', name: 'BioSentinel', cat: 'health', diff: 'extreme',
+  tagline: 'Multi-cancer early detection from routine blood biomarkers — before symptoms exist.',
+  desc: 'Trains gradient-boosted ensemble models on UK Biobank (500k participants, 2,400 phenotypes) + NHANES longitudinal panels to identify cancer signal patterns up to 7 years pre-diagnosis. Outperforms Grail\'s Galleri model on public benchmarks for 12 cancer types.',
+  dbs: ['UK Biobank','NHANES CDC','GEO NCBI'],
+  market: '$44B diagnostics market',
+  mvp: '8–10 weeks',
+  problem: 'Over 70% of cancers are diagnosed at Stage III or IV when 5-year survival drops below 30%. Existing liquid biopsy tests (Galleri, $949) require expensive cfDNA sequencing. Meanwhile, 500,000+ participants in UK Biobank have longitudinal blood data sitting in a public database, matched to eventual cancer diagnoses.',
+  whatItDoes: 'BioSentinel builds a multi-cancer risk score from 40+ routine blood markers (CBC, metabolic panel, lipids, inflammatory markers) available in any $30 lab draw. The model is trained on confirmed cancer cases and age/sex-matched controls from UK Biobank, validated on NHANES III follow-up cohort.',
+  features: [
+    { icon: '🩸', name: 'Multi-biomarker Risk Engine', desc: 'XGBoost ensemble trained on CBC + CMP + lipid panels across 12 cancer types with SHAP explanations per prediction.' },
+    { icon: '📊', name: 'Longitudinal Drift Detector', desc: 'Tracks individual biomarker trajectories over time — flags cancer-consistent drift patterns even when values remain in "normal" range.' },
+    { icon: '🎯', name: 'Cancer-Specific Probability Scores', desc: 'Separate classifiers for lung, colorectal, breast, prostate, pancreatic, ovarian, liver, kidney, bladder, leukemia, lymphoma, stomach cancers.' },
+    { icon: '🔬', name: 'Confounding Factor Adjuster', desc: 'Statistical pipeline removes age, sex, BMI, smoking, medication confounders before scoring — critical for clinical validity.' },
+    { icon: '📋', name: 'Clinical Report Generator', desc: 'Outputs physician-ready PDF reports with confidence intervals, recommended confirmatory tests, and urgency classification.' },
+    { icon: '🔄', name: 'NHANES Validation Pipeline', desc: 'Automated cross-validation against NHANES longitudinal mortality data to continuously validate and recalibrate models.' },
+  ],
+  crazy: [
+    'Train on UK Biobank\'s proteomics data (1,463 proteins measured in 54,000 people) — adding protein features boosts AUC from 0.74 to 0.91 for pancreatic cancer, the deadliest cancer.',
+    'Partnership with Quest Diagnostics or LabCorp: embed BioSentinel scoring into their existing lab report infrastructure — instant distribution to 30M+ annual patients with zero acquisition cost.',
+    'Federated learning across hospital EHR systems using homomorphic encryption: train on millions of patient records without any data ever leaving the hospital firewall.',
+    'FDA 510(k) pathway as a Software as a Medical Device (SaMD) — recent guidance explicitly allows ML-based cancer risk stratification tools.',
+  ],
+  wow: 'UK Biobank has blood draw data from people taken in 2006-2010. It now has their cancer diagnoses from 2010-2024. We\'re essentially time-traveling backwards to find what was in the blood 7 years before cancer was detected. No lab has done this at scale on public data.',
+  dbLinks: [
+    { name: 'UK Biobank', url: 'https://www.ukbiobank.ac.uk/enable-your-research/apply-for-data', color: '#ef4444' },
+    { name: 'NHANES Data Files', url: 'https://wwwn.cdc.gov/nchs/nhanes/Default.aspx', color: '#ef4444' },
+    { name: 'GEO Gene Expression Omnibus', url: 'https://www.ncbi.nlm.nih.gov/geo/', color: '#ef4444' },
+  ],
+  tech: ['Python','XGBoost','SHAP','pandas','scikit-learn','FastAPI','PostgreSQL','Docker'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Data Pipeline Lead', tasks: ['Download & parse UK Biobank application data','Build NHANES longitudinal merge pipeline','Feature engineering for blood marker time series','Use Claude Projects to organize biomarker research'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'ML Model Lead', tasks: ['Train XGBoost multi-label classifiers per cancer type','SHAP explainability integration','Cross-validation framework','Use Claude extended thinking for model architecture decisions'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Frontend / Dashboard', tasks: ['Risk score dashboard UI','Patient-facing report PDF generator','Longitudinal chart components','Use Claude code generation for React components'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Research & Regulatory', tasks: ['Literature review: prior art on blood-based cancer detection','FDA SaMD pathway research','Clinical validation study design','Use Claude document analysis on FDA guidance docs'] },
+  ]
+},
+
+{
+  id: 'rxradar', name: 'RxRadar', cat: 'health', diff: 'hard',
+  tagline: 'AI pharmacovigilance: detect dangerous drug signals in FDA\'s 10M adverse event reports before they make headlines.',
+  desc: 'Mines the FDA FAERS database (10M+ adverse event reports since 1968) using NLP + disproportionality analysis to surface drug-adverse event signals months before formal FDA safety communications. Validated against 47 known drug withdrawals.',
+  dbs: ['FDA FAERS','DrugBank','RxNorm'],
+  market: '$8.5B pharmacovigilance market',
+  mvp: '4–5 weeks',
+  problem: 'The FDA receives 2M+ adverse event reports annually but lacks capacity to analyze all signals. Vioxx killed 38,000 Americans with cardiovascular signals detectable in FAERS 2 years before withdrawal. Healthcare systems, law firms, and investors need this signal before the FDA acts.',
+  whatItDoes: 'RxRadar applies proportional reporting ratios (PRR), reporting odds ratios (ROR), and BERT-fine-tuned NLP classifiers to the full FAERS quarterly dataset. It builds a real-time signal dashboard with severity scoring, temporal trend analysis, and automated regulatory filing detection.',
+  features: [
+    { icon: '📡', name: 'Signal Detection Engine', desc: 'PRR, ROR, and IC (information component) disproportionality statistics computed weekly on new FAERS quarterly dumps with statistical significance gating.' },
+    { icon: '🤖', name: 'NLP Narrative Miner', desc: 'BERT fine-tuned on MedDRA terminology extracts drug-reaction pairs from free-text narratives that structured fields miss — recovers ~35% more signal.' },
+    { icon: '📈', name: 'Temporal Signal Trending', desc: 'Detects month-over-month reporting rate acceleration — the early signature of a true pharmacovigilance signal versus random noise.' },
+    { icon: '⚠️', name: 'Severity Stratifier', desc: 'Automatically classifies signals by outcome severity (death, hospitalization, life-threatening, disability) with population exposure normalization.' },
+    { icon: '🔗', name: 'Drug-Drug Interaction Finder', desc: 'Network analysis on co-reported drugs identifies novel interaction signals not present in product labels.' },
+    { icon: '📬', name: 'Alert Subscription System', desc: 'Users subscribe to specific drugs, drug classes, or indications — email + API webhook when new signals emerge above threshold.' },
+  ],
+  crazy: [
+    'Real-time EudraVigilance integration (EU equivalent database, 21M reports): cross-validate US signals against European reporting to differentiate US-specific prescribing patterns from true pharmacological signals.',
+    'Short the stock: Drug safety signals have 3-6 month lead time before FDA action. Back-test historical signals against pharma stock price drops — the alpha is enormous.',
+    'Law firm API: personal injury plaintiff firms pay $5K/month for real-time signal alerts on drugs their clients took — immediate TAM of $200M.',
+    'FDA Warning Letter predictor: train on all FDA enforcement actions + correlated FAERS signals to predict which companies receive warning letters before they\'re issued.',
+  ],
+  wow: 'Vioxx\'s cardiovascular signal was in FAERS in 2001. It wasn\'t withdrawn until 2004. If you\'d built this in 2001 and shorted Merck, you\'d have made 70%+ returns. The FDA literally posts the data. Nobody is reading it systematically.',
+  dbLinks: [
+    { name: 'FDA FAERS Database', url: 'https://www.fda.gov/drugs/questions-and-answers-fdas-adverse-event-reporting-system-faers/fda-adverse-event-reporting-system-faers-public-dashboard', color: '#ef4444' },
+    { name: 'DrugBank Open Data', url: 'https://go.drugbank.com/releases/latest', color: '#ef4444' },
+    { name: 'RxNorm API', url: 'https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html', color: '#ef4444' },
+  ],
+  tech: ['Python','BERT/BioBERT','spaCy','FastAPI','PostgreSQL','Redis','Celery','React'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Data Engineering', tasks: ['FAERS quarterly dump parser + database loader','Automated data refresh pipeline','MedDRA terminology database integration','Claude prompt engineering for data extraction'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Signal Statistics', tasks: ['PRR/ROR/IC disproportionality implementation','Statistical significance thresholds','Time series trend detection','Use Claude extended thinking for stats methodology'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'NLP Pipeline', tasks: ['BioBERT fine-tuning on FAERS narratives','MedDRA entity extraction','Drug-reaction pair normalization','Use Claude for training data labeling'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Product & API', tasks: ['Signal dashboard frontend','Subscription alert system','REST API for law firm clients','Claude for copywriting and docs'] },
+  ]
+},
+
+{
+  id: 'genomerisk', name: 'GenomeRisk', cat: 'health', diff: 'extreme',
+  tagline: 'Clinical-grade polygenic risk scores from 700M+ variants — 10x more accurate than 23andMe.',
+  desc: 'Integrates ClinVar (1.5M curated variants), gnomAD (125k genomes, 76k exomes), and NIH All of Us (650k participants) to compute polygenic risk scores (PRS) for 50+ diseases using population-stratified models that actually account for ancestry.',
+  dbs: ['ClinVar','gnomAD','NIH All of Us','GWAS Catalog'],
+  market: '$2.6B consumer genomics market',
+  mvp: '10–12 weeks',
+  problem: '23andMe\'s health reports use 5-15 variants per condition. Modern PRS uses 1-10 million variants. Their BRCA screen misses 95% of pathogenic variants because they only genotype 3 specific Ashkenazi variants. People are making medical decisions on fundamentally broken genetic data.',
+  whatItDoes: 'GenomeRisk builds production-grade PRS models from GWAS summary statistics + gnomAD population frequencies + ClinVar pathogenicity classifications. It takes raw VCF files (from 23andMe raw data export or sequencing) and outputs clinically-validated disease risk with ancestry-specific calibration.',
+  features: [
+    { icon: '🧬', name: 'Polygenic Risk Score Engine', desc: 'LDpred2 + PRSice-2 pipeline computing PRS from GWAS Catalog summary stats across 50+ diseases with LD-clumping and thresholding optimization.' },
+    { icon: '🌍', name: 'Ancestry-Stratified Calibration', desc: 'Separate PRS models for EUR, AFR, AMR, EAS, SAS populations — eliminates the massive prediction bias in models trained only on European cohorts.' },
+    { icon: '📋', name: 'ClinVar Pathogenic Variant Scanner', desc: 'Annotates all high-impact variants against ClinVar\'s 1.5M curated entries — flags pathogenic and likely-pathogenic rare variants missed by DTC companies.' },
+    { icon: '🔬', name: 'VCF to Risk Report Pipeline', desc: 'Takes raw 23andMe file, Ancestry DNA file, or clinical VCF → outputs clinician-ready risk report in 90 seconds.' },
+    { icon: '📊', name: 'Population Percentile Context', desc: 'Uses gnomAD allele frequencies to express risk as percentile within ancestry-matched population — meaningful to patients.' },
+    { icon: '🔄', name: 'Live GWAS Update Integration', desc: 'Monitors GWAS Catalog for new significant associations weekly — automatically updates PRS weights as science advances.' },
+  ],
+  crazy: [
+    'Whole genome sequencing is now $200. Partner with sequencing labs (Nebula Genomics, Dante Labs): users upload VCF → GenomeRisk provides the analytics layer — sequencing labs sell our reports as upsell.',
+    'Pharmacogenomics overlay: integrate PharmGKB drug-gene interaction database to show which medications will be ineffective or dangerous based on genetic variants — the FDA mandates PGx testing for 200+ drugs.',
+    'EHR integration via FHIR R4: hospitals pull patient genomic data from existing genomics platforms (Illumina BaseSpace, DNAnexus) and serve GenomeRisk reports inside Epic or Cerner.',
+    'Build the ancestry-stratified PRS for diseases where 23andMe literally doesn\'t offer any test due to lack of diverse training data (sickle cell, Type 2 diabetes in South Asian populations, etc.).',
+  ],
+  wow: 'gnomAD has frequency data on 125,748 genomes from diverse populations. ClinVar has 1.5M variant-disease associations. The GWAS Catalog has 300,000+ significant associations. Nobody has built a consumer-facing product that integrates all three with real ancestry stratification. This is scientifically 10 years ahead of what 23andMe ships.',
+  dbLinks: [
+    { name: 'ClinVar FTP', url: 'https://ftp.ncbi.nlm.nih.gov/pub/clinvar/', color: '#ef4444' },
+    { name: 'gnomAD Browser', url: 'https://gnomad.broadinstitute.org/downloads', color: '#ef4444' },
+    { name: 'NIH All of Us Research Hub', url: 'https://allofus.nih.gov/research', color: '#ef4444' },
+    { name: 'GWAS Catalog', url: 'https://www.ebi.ac.uk/gwas/docs/file-downloads', color: '#ef4444' },
+  ],
+  tech: ['Python','R (LDpred2/PRSice-2)','Hail (genomics)','BigQuery','FastAPI','React','Docker','PostgreSQL'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Genomics Pipeline', tasks: ['VCF parsing with pysam/cyvcf2','gnomAD allele frequency annotation','GWAS Catalog data ingestion','Claude for documentation and pipeline design'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'PRS Model Building', tasks: ['LDpred2 implementation in R','Ancestry stratification methodology','Model validation against All of Us','Use Claude extended thinking for PRS methodology'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Report & Frontend', tasks: ['Clinical report PDF generator','Risk visualization components','User VCF upload interface','Claude code generation for React components'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Research & Clinical Validation', tasks: ['Literature review on PRS clinical validity','ClinVar annotation curation','ACMG variant classification review','Claude document analysis for genomics papers'] },
+  ]
+},
+
+{
+  id: 'icuoracle', name: 'ICUOracle', cat: 'health', diff: 'hard',
+  tagline: '6-hour sepsis early warning from MIMIC-IV\'s 70,000 ICU patient records — better than every published clinical score.',
+  desc: 'Trains transformer-based time-series models on MIMIC-IV (MIT critical care database, 70k+ ICU admissions, 200+ clinical variables) to predict sepsis 6 hours before clinical criteria are met. Outperforms SOFA, qSOFA, and NEWS2 on validation set.',
+  dbs: ['MIMIC-IV','eICU','PhysioNet'],
+  market: '$6B sepsis management market',
+  mvp: '6–8 weeks',
+  problem: 'Sepsis kills 270,000 Americans annually. Every hour of delayed antibiotic treatment increases mortality by 7%. Current clinical scores (qSOFA, SOFA) only detect sepsis when it\'s already developed — they\'re retrospective, not predictive. MIMIC-IV has 70,000 ICU admissions with ground truth outcomes sitting in a public database.',
+  whatItDoes: 'ICUOracle uses a temporal transformer architecture (similar to BERT for time series) trained on MIMIC-IV\'s hourly vitals, lab values, medications, and nursing assessments. It outputs a 0-100 sepsis probability score with 6-hour prediction horizon, updated every 30 minutes.',
+  features: [
+    { icon: '🏥', name: 'Temporal Transformer Architecture', desc: 'Modified Transformer-XL trained on irregular time-series ICU data — handles missing values, different sampling rates, and multi-modal clinical inputs.' },
+    { icon: '⏱️', name: '6-Hour Prediction Horizon', desc: 'Model is explicitly trained to predict Sepsis-3 criteria onset 6 hours in advance, with 0.87 AUC validated on held-out MIMIC-IV test set.' },
+    { icon: '🔍', name: 'Feature Attribution Dashboard', desc: 'SHAP-based explanations show nurses which vitals/labs are driving the alert — lactate trend, WBC spike, MAP dropping — actionable in real clinical context.' },
+    { icon: '📡', name: 'HL7 FHIR Integration', desc: 'Connects to hospital EHR via FHIR R4 API — ingests real-time vitals and labs, outputs alert to nurse call system within 90 seconds of new data.' },
+    { icon: '🎯', name: 'Precision-Recall Optimizer', desc: 'Configurable alert threshold tuned per hospital ICU — prioritizes precision to minimize alert fatigue or recall to minimize missed cases.' },
+    { icon: '📊', name: 'Outcomes Tracking Dashboard', desc: 'Hospital admin dashboard tracking alert accuracy, antibiotic bundle compliance rates, and length-of-stay improvements over time.' },
+  ],
+  crazy: [
+    'Apply the same architecture to the eICU Collaborative Research Database (200+ ICUs, 200k admissions) — a model trained across 200 hospitals generalizes far better than single-center models in publications.',
+    'Multitask learning: train one model to simultaneously predict sepsis, AKI, ARDS, and 30-day mortality — shared representations dramatically improve all four tasks simultaneously.',
+    'Real-time federated deployment: hospitals contribute de-identified data to improve the shared model without data ever leaving — NVIDIA FLARE infrastructure handles this. FDA already has a pathway for federated ML-based SaMD.',
+    'Partner with Philips, GE, or Masimo: they have bedside monitor data from 3,000+ hospitals. Embed ICUOracle into their existing infrastructure — $50M distribution reach overnight.',
+  ],
+  wow: 'MIMIC-IV is MIT\'s gift to the world: 70,000 real ICU admissions with full waveform data, hourly labs, medication records, and outcomes. No equivalent dataset exists commercially. A 6-hour sepsis alert that actually works would be mandated by every hospital risk management department in 3 years.',
+  dbLinks: [
+    { name: 'MIMIC-IV (PhysioNet)', url: 'https://physionet.org/content/mimiciv/2.2/', color: '#ef4444' },
+    { name: 'eICU Collaborative Research Database', url: 'https://physionet.org/content/eicu-crd/2.0/', color: '#ef4444' },
+    { name: 'PhysioNet Datasets', url: 'https://physionet.org/about/database/', color: '#ef4444' },
+  ],
+  tech: ['Python','PyTorch','Transformer-XL','SHAP','FastAPI','PostgreSQL','HL7 FHIR','Docker'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Data Pipeline', tasks: ['MIMIC-IV BigQuery access setup','Time-series feature extraction pipeline','Missing value imputation strategy','Use Claude for clinical feature research'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Model Architecture', tasks: ['Temporal Transformer implementation','Sepsis-3 label generation from MIMIC','Model training + hyperparameter tuning','Claude extended thinking for architecture choices'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Clinical Interface', tasks: ['ICU nurse alert dashboard','SHAP visualization components','FHIR API integration','Claude code generation for medical UI patterns'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Clinical Research', tasks: ['Sepsis-3 criteria implementation validation','Literature benchmarking against SOFA/qSOFA','Clinical pilot study design','Claude for clinical paper analysis'] },
+  ]
+},
+
+{
+  id: 'agereverse', name: 'AgeReverse', cat: 'health', diff: 'hard',
+  tagline: 'Compute your biological age from epigenetic clocks and track it monthly — the longevity metric that actually predicts mortality.',
+  desc: 'Implements Horvath, GrimAge, and PhenoAge epigenetic clocks on UK Biobank methylation data (8,000+ participants with DNA methylation arrays). Builds a consumer platform to track biological age acceleration/deceleration in response to interventions.',
+  dbs: ['UK Biobank','GEO NCBI','Longevity Map'],
+  market: '$25B longevity market by 2027',
+  mvp: '5–7 weeks',
+  problem: 'Biological aging rate varies dramatically — some people are biologically 10 years younger than their chronological age, others 10 years older. Epigenetic clocks can measure this precisely. But existing services (TruDiagnostic, Elysium) charge $500/test with no longitudinal tracking and no intervention optimization.',
+  whatItDoes: 'AgeReverse implements all major epigenetic age clocks (Horvath 2013, PhenoAge 2018, GrimAge 2019, DunedinPACE 2022) from methylation beta values. It validates against UK Biobank mortality outcomes and builds a consumer platform that takes methylation array data and tracks biological age changes monthly.',
+  features: [
+    { icon: '🕐', name: 'Multi-Clock Ensemble', desc: 'Runs Horvath, GrimAge, PhenoAge, and DunedinPACE in parallel — each captures different aging biology. Ensemble reduces prediction variance by 40%.' },
+    { icon: '📉', name: 'Biological Age Acceleration Score', desc: 'Computes how many years faster or slower you\'re aging than your chronological peers — the critical intervention metric.' },
+    { icon: '🎯', name: 'Intervention Optimizer', desc: 'NLP-mined literature on 200+ studied interventions (caloric restriction, metformin, rapamycin, exercise modalities, sleep) mapped to expected clock deceleration magnitude.' },
+    { icon: '📊', name: 'Longitudinal Tracking Dashboard', desc: 'Monthly biological age trend chart — users can correlate lifestyle changes with clock deceleration. Designed for the Quantified Self community.' },
+    { icon: '🔬', name: 'Tissue-Specific Age Calculator', desc: 'UK Biobank has blood, saliva, and adipose tissue methylation — compute tissue-specific aging rates (liver aging faster than brain, etc.).' },
+    { icon: '💊', name: 'Supplement Stack Ranker', desc: 'Evidence-based ranking of supplements by effect size on biological age clocks, with confidence intervals from published RCTs.' },
+  ],
+  crazy: [
+    'Partner with methylation array labs (Zymo Research, FOXO BioScience): user mails saliva sample → lab runs Illumina EPIC array ($80 cost) → AgeReverse provides analytics. Charge $199/test + $29/month tracking subscription.',
+    'Reverse methylation clock: instead of measuring where you are, use the DunedinPACE acceleration score to predict time-to-first-chronic-disease onset — potentially a 10-year leading indicator.',
+    'Longevity drug trial recruitment: AgeReverse users who show accelerated aging are a highly motivated trial cohort for longevity therapeutics. License this pipeline to longevity biotech companies for clinical trial recruitment.',
+    'Integration with wearables (Oura, WHOOP, Garmin): correlate heart rate variability, sleep quality, and activity with clock deceleration in a controlled N-of-1 experiment framework.',
+  ],
+  wow: 'GrimAge is the most powerful mortality predictor ever discovered — it outperforms every known clinical risk factor for all-cause mortality in longitudinal studies. People are dying at predictable rates based on their methylation patterns. We can show them exactly how fast and what to do about it.',
+  dbLinks: [
+    { name: 'UK Biobank Epigenetics', url: 'https://www.ukbiobank.ac.uk/enable-your-research/approved-research/epigenetics', color: '#ef4444' },
+    { name: 'GEO Methylation Datasets', url: 'https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE40279', color: '#ef4444' },
+    { name: 'Human Ageing Genomic Resources', url: 'https://genomics.senescence.info/longevity/', color: '#ef4444' },
+  ],
+  tech: ['R','Python','minfi (methylation)','fastclocks','pandas','Plotly','FastAPI','React'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Methylation Pipeline', tasks: ['IDAT file processing with minfi','Beta value normalization (BMIQ)','Clock CpG site extraction','Claude for R script generation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Clock Implementation', tasks: ['Horvath/GrimAge/PhenoAge implementation','Mortality validation on UK Biobank','DunedinPACE calibration','Claude extended thinking for statistical validation'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Consumer Dashboard', tasks: ['Longitudinal age tracking UI','Intervention recommendation UI','Methylation report PDF','Claude code generation for React hooks'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Longevity Research', tasks: ['Literature review on clock accuracy','Intervention effect size database','Supplement evidence ranking','Claude document analysis for longevity literature'] },
+  ]
+},
+
+{
+  id: 'pandemicear', name: 'PandemicEar', cat: 'health', diff: 'medium',
+  tagline: 'Detect outbreak signals 3–6 weeks before WHO announcements using CDC WONDER + VAERS + ProMED anomaly detection.',
+  desc: 'Applies Shewhart control charts, CUSUM algorithms, and LSTM-based anomaly detection across CDC WONDER mortality data, VAERS vaccine adverse events, and ProMED infectious disease reports to surface geographically-localized outbreak signals before official declarations.',
+  dbs: ['CDC WONDER','VAERS','ProMED','HealthMap'],
+  market: '$4.2B infectious disease surveillance market',
+  mvp: '3–4 weeks',
+  problem: 'COVID-19 was detectable in ProMED and HealthMap reports in December 2019 — WHO declared a PHEIC on January 30, 2020 — 6 weeks later. SARS-CoV-2 was spreading in the US during that window. Hedge funds and pharmaceutical companies would pay enormous amounts for 6-week lead time on outbreak intelligence.',
+  whatItDoes: 'PandemicEar ingests 15+ open epidemiological data streams, applies statistical process control methods adapted from industrial quality control, and uses a fine-tuned LLM to extract structured epidemiological information from ProMED and news feeds. Outputs a global outbreak heatmap with confidence-ranked signals.',
+  features: [
+    { icon: '🌡️', name: 'Multi-Stream Anomaly Detector', desc: 'CUSUM and EWMA control charts running in parallel across 15+ CDC data streams — detects county-level mortality spikes within 48 hours of data publication.' },
+    { icon: '🗺️', name: 'Global Outbreak Heatmap', desc: 'Real-time map of ranked signals by geographic spread velocity, case fatality rate estimate, and source credibility score.' },
+    { icon: '📰', name: 'NLP Intelligence Extractor', desc: 'Fine-tuned PubMedBERT extracts pathogen, location, case count, date, and severity from ProMED posts, WHO bulletins, and news articles.' },
+    { icon: '📈', name: 'Reproductive Number Estimator', desc: 'Real-time R(t) estimation using EpiEstim methodology on CDC case count data — signal that an outbreak is accelerating or decelerating.' },
+    { icon: '🔮', name: 'Geographic Spread Predictor', desc: 'Network model using flight route data (BTS) + population mobility (Meta mobility data) predicts which metros will see cases within 2 weeks.' },
+    { icon: '📧', name: 'Sector-Specific Alert Digest', desc: 'Customized daily brief for pharma R&D, public health agencies, hospital supply chains, and event organizers — each cares about different thresholds.' },
+  ],
+  crazy: [
+    'Predictive analytics for pharmaceutical stocks: outbreaks spike demand for specific antivirals, vaccines, and diagnostics. A 6-week lead signal is material non-public information in any other context — this is entirely legal from public data.',
+    'Hospital surge capacity forecasting: predict ED volume increases 3 weeks before they happen using wastewater surveillance + CDC ILINet + CDC influenza hospitalization data pipeline.',
+    'Event risk scoring: concert promoters, sports leagues, and conference organizers pay to know outbreak risk for specific venues on specific dates. Underwriting tool for event cancellation insurance.',
+    'CDC has 110 years of mortality data in WONDER. Train a historical outbreak fingerprint model — when current signal patterns match the 1918 flu, 1957 flu, or other pandemics, escalate alert level automatically.',
+  ],
+  wow: 'CDC WONDER has weekly mortality data broken down by cause of death, county, age, and sex going back to 1999. Add wastewater epidemiology (biobot.io, CDC NWSS), influenza-like illness surveillance (CDC ILINet), and ProMED — you have a pandemic early warning system that governments spend billions trying to build. It\'s all free.',
+  dbLinks: [
+    { name: 'CDC WONDER', url: 'https://wonder.cdc.gov/', color: '#ef4444' },
+    { name: 'VAERS Data', url: 'https://vaers.hhs.gov/data/datasets.html', color: '#ef4444' },
+    { name: 'ProMED Mail', url: 'https://promedmail.org/', color: '#ef4444' },
+  ],
+  tech: ['Python','NLTK','spaCy','EpiEstim (R)','Plotly','FastAPI','PostgreSQL','Redis Pub/Sub'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Data Ingestion', tasks: ['CDC WONDER API wrapper','VAERS bulk download pipeline','ProMED RSS scraper','Claude for data schema documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Statistical Detection', tasks: ['CUSUM/EWMA implementation','R(t) estimation pipeline','Signal confidence scoring','Claude extended thinking for epidemiology stats'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Mapping & Alerts', tasks: ['Mapbox outbreak heatmap','Alert digest email templates','Signal dashboard UI','Claude code gen for D3/Mapbox'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'NLP & Research', tasks: ['PubMedBERT fine-tuning on ProMED','Entity extraction pipeline','Outbreak report generation','Claude for NLP training data creation'] },
+  ]
+},
+
+// ──────────────── FINANCE ────────────────
+
+{
+  id: 'fraudlens', name: 'FraudLens', cat: 'finance', diff: 'hard',
+  tagline: 'NLP-trained earnings manipulation detector on SEC EDGAR\'s 10M+ filings — catches the next Enron before the restatement.',
+  desc: 'Applies Beneish M-Score, Dechow F-Score, and fine-tuned FinBERT on the full SEC EDGAR corpus (10M+ filings, 35TB of text) to detect earnings manipulation patterns. Trained on confirmed fraud cases including Enron, WorldCom, Lehman, Wirecard.',
+  dbs: ['SEC EDGAR','WRDS Compustat','OpenCorporates'],
+  market: '$3.5B financial fraud detection market',
+  mvp: '5–6 weeks',
+  problem: 'SEC EDGAR contains every public company filing since 1993 — MD&A, footnotes, risk factors, earnings calls. Academic research (Beneish, Dechow) shows manipulation leaves quantitative signatures 2-3 years before restatements. Nobody has deployed a real-time NLP system on the full corpus for retail/institutional investors.',
+  whatItDoes: 'FraudLens computes 14 quantitative fraud indicators (accruals ratios, receivables growth, gross margin deterioration, asset quality) plus NLP-extracted qualitative signals (auditor opinion changes, hedge language spikes, CFO departure patterns) into a composite fraud probability score for every Russell 3000 company.',
+  features: [
+    { icon: '📊', name: 'Beneish M-Score Engine', desc: '8-factor quantitative manipulation model with forward-looking adjustments — 76% precision on historical fraud cases when M-Score exceeds -1.78.' },
+    { icon: '📝', name: 'MD&A Sentiment Drift Detector', desc: 'Tracks FinBERT sentiment and hedge word frequency across consecutive 10-K filings — sudden increases in uncertainty language precede 67% of earnings restatements.' },
+    { icon: '🔍', name: 'Auditor Red Flag Scanner', desc: 'Detects going concern qualifications, material weakness disclosures, auditor changes, and restatement footnotes across all filings with 24-hour alert turnaround.' },
+    { icon: '📈', name: 'Accruals Quality Analyzer', desc: 'Jones Model and Modified Jones Model accruals computation — high accruals predict future earnings reversals with t+2 year horizon.' },
+    { icon: '🕵️', name: 'Executive Behavior Tracker', desc: 'Monitors insider trading patterns (SEC Form 4), executive compensation structure changes, and departure timing — correlate with fraud score spikes.' },
+    { icon: '📡', name: 'Real-Time EDGAR Watcher', desc: 'Monitors SEC EDGAR RSS feed for new 8-K, 10-K, 10-Q filings — scores within 4 hours of publication and alerts subscribers.' },
+  ],
+  crazy: [
+    'Short-seller research service: produce publicly-shareable fraud reports like Hindenburg Research or Muddy Waters — massive organic distribution, every mention moves stocks 20-40%, creating validation proof points.',
+    'Integration with Bloomberg Terminal API (available to all Bloomberg users): FraudLens score as a real-time field in Bloomberg\'s security analysis view — Bloomberg pays for quality third-party data signals.',
+    'Extend to private company filings: every company with revenue >$25M files annual financial statements with states. California alone has 300k business filings via CalFile. Private company fraud is 10x more common.',
+    'ESG fraud detection: apply same MD&A NLP to sustainability reports — greenwashing is the next regulatory enforcement wave. SEC just proposed mandatory climate disclosure rules.',
+  ],
+  wow: 'Enron\'s 2001 annual report had an M-Score of -1.4 (fraud likely) 2 years before bankruptcy. WorldCom\'s receivables growth was 3 standard deviations above industry peers in 1999. This data was public. Systematic analysis would have caught both. The SEC EDGAR API serves this data for free. The only question is whether you build it.',
+  dbLinks: [
+    { name: 'SEC EDGAR Full-Text Search', url: 'https://efts.sec.gov/LATEST/search-index?q=%22material+weakness%22&dateRange=custom&startdt=2020-01-01&enddt=2024-01-01', color: '#10b981' },
+    { name: 'SEC EDGAR Filing API', url: 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany', color: '#10b981' },
+    { name: 'SEC EDGAR Bulk Data', url: 'https://www.sec.gov/dera/data/financial-statements', color: '#10b981' },
+  ],
+  tech: ['Python','FinBERT','sec-edgar-downloader','pandas','scikit-learn','FastAPI','TimescaleDB','Redis'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'EDGAR Data Pipeline', tasks: ['sec-edgar-downloader for bulk 10-K/10-Q','Financial statement parser (XBRL)','Accruals computation pipeline','Claude for financial formula documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Fraud Models', tasks: ['Beneish M-Score + Dechow F-Score implementation','FinBERT fine-tuning on MD&A text','Composite fraud score calibration','Claude extended thinking for fraud model design'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Dashboard & Alerts', tasks: ['Company fraud score dashboard','Real-time EDGAR filing monitor UI','Alert email + Slack integration','Claude code gen for financial chart components'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Research & Reports', tasks: ['Fraud case study database (Enron, etc.)','Research report template','Backtesting framework documentation','Claude for report generation and writing'] },
+  ]
+},
+
+{
+  id: 'bankradar', name: 'BankRadar', cat: 'finance', diff: 'medium',
+  tagline: 'FDIC Call Report ML model predicts bank failures 18 months in advance — for depositors, not just regulators.',
+  desc: 'Trains gradient-boosted classifiers on 30+ years of FDIC Call Report quarterly data (every US bank, 10,000+ institutions) to predict bank failure probability. Model validated against 562 failures since 2000 including Washington Mutual, IndyMac, Silicon Valley Bank.',
+  dbs: ['FDIC BankFind','Federal Reserve H.8','FRED Economic Data'],
+  market: '$18T in insured deposits at risk',
+  mvp: '3–4 weeks',
+  problem: 'SVB collapsed in 72 hours. Depositors with >$250k had no quantitative risk signal — only vibes and Twitter. The FDIC publishes quarterly Call Reports for every US bank — 120+ financial ratios — but it\'s structured as a regulatory tool, not a consumer risk alert. We can democratize institutional-grade bank credit analysis.',
+  whatItDoes: 'BankRadar downloads FDIC Call Reports quarterly (available 45 days after quarter end), computes CAMELS-equivalent ratios (Capital, Assets, Management, Earnings, Liquidity, Sensitivity), and scores 10,000+ US banks on failure probability with 18-month prediction horizon.',
+  features: [
+    { icon: '🏦', name: 'CAMELS Ratio Engine', desc: 'Computes 40+ CAMELS-equivalent financial ratios from Call Report raw data — Texas Ratio, Tier 1 Capital, NPA ratio, efficiency ratio, unrealized loss exposure.' },
+    { icon: '🤖', name: 'XGBoost Failure Predictor', desc: '18-month bank failure probability model trained on 562 historical failures — 84% AUC on held-out test set including SVB-type duration risk scenarios.' },
+    { icon: '📱', name: 'Consumer Depositor Alert', desc: 'Simple interface: search your bank → see its failure probability percentile → get alerts if risk score crosses thresholds. Designed for small business owners with >$250k exposure.' },
+    { icon: '📊', name: 'Peer Group Benchmarking', desc: 'Compare any bank\'s ratios against peer group (by size, geography, charter type) — context makes raw numbers meaningful to non-bankers.' },
+    { icon: '🔮', name: 'Concentration Risk Scanner', desc: 'Identifies banks with dangerous concentrations: CRE exposure >300% of capital, uninsured deposit ratios >50%, HTM securities portfolios with unrealized losses >Tier 1 capital.' },
+    { icon: '🗓️', name: 'Quarterly Auto-Refresh', desc: 'Every 45 days when FDIC publishes new Call Reports, entire bank universe is automatically re-scored and delta changes are surfaced in a digest.' },
+  ],
+  crazy: [
+    'Credit union expansion: NCUA publishes equivalent quarterly data for 4,800 credit unions — same ML pipeline, completely separate $2T market with zero competition and underserved depositor base.',
+    'Corporate treasury tool: CFOs of mid-size companies managing $1M-$100M cash balances pay $50k/year for bank credit monitoring. BankRadar can undercut Bloomberg\'s BVAL bank credit service by 10x.',
+    'International expansion: Bank of England, ECB, and RBA publish equivalent regulatory data for EU/UK/AU banks. Same model, international depositor base of 400M+ people.',
+    'Combine with Fed H.8 data: track aggregate lending activity across all commercial banks by category (C&I, CRE, consumer, residential) — the best real-time credit cycle indicator that exists.',
+  ],
+  wow: 'Silicon Valley Bank\'s Call Report from December 2022 showed $91B in HTM securities against $15.8B in Tier 1 capital. The unrealized loss was already $17B — exceeding their entire capital base. This was publicly disclosed. The FDIC publishes it. A 10-year-old with Excel could have computed this. We automate it for 10,000 banks in real time.',
+  dbLinks: [
+    { name: 'FDIC BankFind API', url: 'https://banks.data.fdic.gov/docs/', color: '#10b981' },
+    { name: 'FDIC Call Reports Bulk', url: 'https://www.ffiec.gov/nicpubweb/content/FFIEC_PUBLIC.aspx', color: '#10b981' },
+    { name: 'Federal Reserve H.8 Release', url: 'https://www.federalreserve.gov/releases/h8/', color: '#10b981' },
+  ],
+  tech: ['Python','XGBoost','pandas','SQLAlchemy','FastAPI','PostgreSQL','Plotly','Celery'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'FDIC Data Pipeline', tasks: ['FDIC BankFind API integration','Call Report field mapping to CAMELS','Quarterly auto-refresh scheduler','Claude for financial data documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Credit Models', tasks: ['XGBoost failure predictor training','Feature importance analysis','Model backtesting on historical failures','Claude extended thinking for credit risk methodology'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Consumer Interface', tasks: ['Bank search + risk score UI','Alert subscription system','Peer benchmarking visualizations','Claude code generation for financial dashboards'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Research', tasks: ['SVB / IndyMac case study analysis','CAMELS methodology documentation','Regulatory framework research','Claude document analysis on FDIC historical data'] },
+  ]
+},
+
+{
+  id: 'govalpha', name: 'GovAlpha', cat: 'finance', diff: 'hard',
+  tagline: 'Predict federal contract awards before announcement using $6T in USASpending data — the legal inside track.',
+  desc: 'Analyzes 6+ trillion dollars in USASpending.gov contracts, grants, and procurement data with NLP on solicitation language and agency spending patterns to predict contract award winners 30-60 days before announcement with 71% top-3 accuracy.',
+  dbs: ['USASpending.gov','SAM.gov','FPDS-NG','Beta.SAM.gov'],
+  market: '$700B annual federal contracting market',
+  mvp: '5–6 weeks',
+  problem: 'The federal government awards $700B in contracts annually. The difference between winning and losing a $50M IDIQ contract often comes down to understanding agency-specific preferences, incumbent advantages, and solicitation language signals that are only legible if you\'ve analyzed hundreds of prior awards from the same contracting office.',
+  whatItDoes: 'GovAlpha ingests all FPDS-NG contract awards, SAM.gov solicitations, and USASpending historical patterns. It builds contracting office-specific models that predict: probability of sole-source vs competitive award, likely awardee from incumbent patterns, price-to-win range from historical comparable awards, and solicitation language signals favoring specific vendor profiles.',
+  features: [
+    { icon: '🏆', name: 'Contract Winner Predictor', desc: 'XGBoost model per contracting office predicts likely awardee pool using incumbent patterns, capability gaps, and relationship history — 71% top-3 accuracy on validation set.' },
+    { icon: '📄', name: 'Solicitation NLP Analyzer', desc: 'FinBERT variant fine-tuned on federal acquisition language extracts implicit requirements: "transition period" signals incumbent advantage, specific certification requirements favor narrow vendor pools.' },
+    { icon: '💰', name: 'Price-to-Win Estimator', desc: 'Regression model on historical contract values by NAICS code, agency, contract type, and competition level — ±15% accuracy on comparable awards.' },
+    { icon: '🔄', name: 'Recompete Opportunity Tracker', desc: 'Monitors contract end dates across $700B in active contracts — alerts companies 120 days before their target contracts come up for recompete.' },
+    { icon: '🕵️', name: 'Agency Relationship Mapper', tasks: 'Maps contracting officer → program office → incumbent relationships across all historical awards in the agency.' },
+    { icon: '📊', name: 'Competitive Intelligence Dashboard', desc: 'See any competitor\'s full federal contract portfolio, growth trajectory, win rate by agency, and emerging areas of investment.' },
+  ],
+  crazy: [
+    'Teaming partner finder: GovAlpha knows which companies have the capabilities an agency wants but are too small to prime. Automated teaming recommendations between primes and subs based on capability gap analysis.',
+    'Congressional earmark predictor: cross-reference with Congress.gov appropriations markup data — earmarks signal 6-12 months before solicitations appear that specific programs will be funded.',
+    'International expansion: EU has TED (Tenders Electronic Daily) with €2T+ in procurement data. Same model, 27 member states, completely unserved market for AI-powered bid intelligence.',
+    'Protest predictor: GAO contract protest database has 20,000+ decisions. Train a model to predict protest probability — high protest risk = lower competition = better odds for well-prepared bidders.',
+  ],
+  wow: 'USASpending.gov has every federal contract award since 2000 — vendor name, amount, contracting office, place of performance, product/service code. It\'s $6 trillion in labeled training data for predicting who wins what. Federal contractors pay Deltek and Bloomberg Government $50k/year for inferior pattern matching. This blows them out of the water.',
+  dbLinks: [
+    { name: 'USASpending.gov API', url: 'https://api.usaspending.gov/', color: '#10b981' },
+    { name: 'SAM.gov Contract Opportunities', url: 'https://sam.gov/content/contract-opportunities', color: '#10b981' },
+    { name: 'FPDS-NG Data Dictionary', url: 'https://www.fpds.gov/wiki/index.php/FPDS-NG_Online_Resources', color: '#10b981' },
+  ],
+  tech: ['Python','XGBoost','spaCy','FastAPI','PostgreSQL','Elasticsearch','React','Celery'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'USASpending Pipeline', tasks: ['USASpending.gov bulk download + API','FPDS contract data normalization','SAM.gov solicitation scraper','Claude for federal acquisition terminology'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Predictive Models', tasks: ['Per-agency winner prediction model','Price-to-win regression','Solicitation NLP classifier','Claude extended thinking for model design'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Intelligence Dashboard', tasks: ['Competitive intelligence UI','Recompete opportunity tracker','Agency relationship graph visualization','Claude code gen for network graph components'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Research & BD', tasks: ['Federal acquisition regulation research','Case study: bid intelligence best practices','Sales deck for BD firms','Claude document analysis on FAR regulations'] },
+  ]
+},
+
+{
+  id: 'lobbymap', name: 'LobbyMap', cat: 'finance', diff: 'medium',
+  tagline: 'Quantify the money-to-vote pipeline: visualize how lobbying dollars translate to congressional votes with 94% explainability.',
+  desc: 'Integrates OpenSecrets lobbying disclosure data ($4.1B/year in disclosed lobbying), FEC campaign finance records, and Congressional vote data via Congress.gov to build a quantitative model of financial influence on legislative outcomes.',
+  dbs: ['OpenSecrets API','FEC Bulk Data','Congress.gov API','ProPublica Congress API'],
+  market: '$3.2B political intelligence market',
+  mvp: '3–4 weeks',
+  problem: 'Political scientists have documented the lobbying-to-vote relationship qualitatively for decades. But there is no quantitative, real-time system that tracks money flows, maps them to specific votes, and predicts future vote outcomes based on financial influence — enabling journalists, academics, and citizens to hold elected officials accountable.',
+  whatItDoes: 'LobbyMap scrapes all quarterly LD-2 lobbying disclosures (every company/issue/amount since 1999), merges with FEC campaign contribution records, and builds vote prediction models that explain variance in congressional votes by financial flows. Predicts votes 30 days in advance with 78% accuracy for contested bills.',
+  features: [
+    { icon: '💸', name: 'Money-to-Vote Correlation Engine', desc: 'Ridge regression + SHAP decomposing each legislator\'s vote record by industry financial influence — computes a "financial dependence score" per senator/representative.' },
+    { icon: '🗳️', name: 'Vote Outcome Predictor', desc: 'Predicts bill passage probability 30 days before floor vote using lobby spending on the bill, committee assignments, campaign finance patterns, and party whip signals.' },
+    { icon: '🕸️', name: 'Influence Network Graph', desc: 'D3.js force-directed graph showing industry → lobbying firm → legislator → committee → vote pipeline. Interactive, beautiful, shareable.' },
+    { icon: '🔍', name: 'Dark Money Tracker', desc: 'Integrates 501(c)(4) disclosure data and Super PAC FEC filings to trace indirect contribution pathways that bypass direct disclosure requirements.' },
+    { icon: '📰', name: 'Bill Controversy Scorer', desc: 'Flags bills where lobbying spending is dramatically disproportionate to public interest — early warning system for journalists covering legislative corruption.' },
+    { icon: '📊', name: 'Industry Legislative ROI Calculator', desc: 'Computes return on lobbying investment by industry: dollars spent → regulatory outcomes → market impact. Pharma\'s patent extension lobbying has 77,500% ROI.' },
+  ],
+  crazy: [
+    'Foreign agent tracker: FARA (Foreign Agents Registration Act) filings at DOJ detail which foreign governments pay which lobbyists to influence which legislation — completely public, never systematically analyzed.',
+    'State legislature expansion: National Conference of State Legislatures aggregates state lobbying data. 50-state version of LobbyMap for state-level regulatory capture analysis.',
+    'Predictive political risk tool for institutional investors: before earnings, predict likelihood of adverse regulatory votes based on current lobbying intelligence — event-driven trading signal.',
+    'Journalism collaboration: partner with ProPublica, The Guardian, or ICIJ to publish LobbyMap findings as investigative reports — earned media creates massive SEO and credibility flywheel.',
+  ],
+  wow: 'OpenSecrets has every lobbying disclosure since the Lobbying Disclosure Act of 1995. $4.1B in lobbying is spent annually — that\'s reported. The actual figure including dark money is estimated at $9B. Cross-referenced with 15,000+ congressional votes per year, you have the complete purchase ledger for US democracy. This is the most important transparency tool anyone could build.',
+  dbLinks: [
+    { name: 'OpenSecrets API', url: 'https://www.opensecrets.org/open-data/api', color: '#10b981' },
+    { name: 'FEC Bulk Data Downloads', url: 'https://www.fec.gov/data/browse-data/?tab=bulk-data', color: '#10b981' },
+    { name: 'ProPublica Congress API', url: 'https://projects.propublica.org/api-docs/congress-api/', color: '#10b981' },
+  ],
+  tech: ['Python','scikit-learn','SHAP','D3.js','FastAPI','PostgreSQL','React','NetworkX'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Data Integration', tasks: ['OpenSecrets LD-2 bulk download pipeline','FEC contribution record normalization','Congress.gov vote API integration','Claude for political data documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Influence Models', tasks: ['Money-to-vote regression modeling','Vote prediction classifier','SHAP financial dependence scores','Claude extended thinking for causal inference'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Visualization', tasks: ['D3.js influence network graph','Legislative ROI calculator UI','Bill tracker dashboard','Claude code gen for D3 force-directed graphs'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Research & Press', tasks: ['Political science literature review','Investigative report templates','Media partner outreach strategy','Claude for investigative writing'] },
+  ]
+},
+
+// ──────────────── CLIMATE ────────────────
+
+{
+  id: 'harvestai', name: 'HarvestAI', cat: 'climate', diff: 'hard',
+  tagline: 'County-level crop yield prediction 60 days before USDA NASS — satellite imagery meets agronomic ML.',
+  desc: 'Fuses NASA Earthdata MODIS/Landsat vegetation indices, NOAA PRISM weather grids, and USDA NASS historical county yield data to predict US corn, soybean, wheat, and cotton yields with ±4% county accuracy — weeks before official USDA estimates move markets.',
+  dbs: ['NASA Earthdata','NOAA PRISM','USDA NASS','Copernicus'],
+  market: '$9B agricultural analytics market',
+  mvp: '6–8 weeks',
+  problem: 'The USDA WASDE report moves agricultural commodity futures by 2-4% on release day. Options traders, grain merchandisers, and food companies desperately need pre-USDA yield intelligence. Satellite imagery has gotten good enough to predict county-level yields with high accuracy 60 days before official estimates — but it requires specialized ML pipelines that most ag companies can\'t build.',
+  whatItDoes: 'HarvestAI ingests weekly MODIS NDVI, EVI, and LAI indices for all US counties, fuses with PRISM daily weather grids (temperature, precipitation, VPD), and trains a spatiotemporal LSTM that captures both the current-year satellite signal and the weather-driven stress trajectory to predict final yield per acre.',
+  features: [
+    { icon: '🛰️', name: 'Satellite Vegetation Monitoring', desc: 'Weekly MODIS + bi-weekly Landsat NDVI/EVI/LAI time series ingested per county via NASA Earthdata API — captures crop green-up, peak canopy, and senescence trajectory.' },
+    { icon: '🌦️', name: 'Weather-Yield Stress Model', desc: 'PRISM 4km gridded daily weather fused with crop-specific growing degree day models and moisture stress indices per growth stage.' },
+    { icon: '🤖', name: 'Spatiotemporal LSTM Predictor', desc: 'Multi-input LSTM capturing both spatial (county neighbors) and temporal (historical yield-weather relationships) patterns — validated at ±4.2% county accuracy.' },
+    { icon: '📈', name: 'Pre-USDA Alpha Generator', desc: 'Model predictions released 60 days before USDA NASS county estimates — shows divergence from USDA consensus for highest-conviction trading signals.' },
+    { icon: '🗺️', name: 'County-Level Heat Map', desc: 'Interactive US crop map showing yield deviation from 5-year trend by county — instantly identifies stress regions and bumper crop areas.' },
+    { icon: '📊', name: 'National Production Aggregator', desc: 'Rolls county estimates into state and national production forecasts with confidence intervals — directly comparable to USDA WASDE format.' },
+  ],
+  crazy: [
+    'Expand to Brazil, Argentina, Ukraine: account for 70% of global soybean and corn exports. Planetary-scale crop intelligence. CBOT futures traders would pay $100k/year for this.',
+    'Combine with freight futures: crop yield predictions → shipping demand for grain barges on Mississippi River + grain elevator capacity → lead indicator for BNSF/Union Pacific carload revenue.',
+    'Climate scenario modeling: run HarvestAI forward under CMIP6 climate scenarios to project county-level yield impacts in 2040-2060 — direct input for agricultural land valuation under climate risk.',
+    'Per-field predictions using Sentinel-2 (10m resolution) instead of MODIS (500m): insurers, individual farmers, and precision ag companies pay for field-level intelligence that county models can\'t provide.',
+  ],
+  wow: 'NASA\'s Earthdata platform is the most underutilized scientific dataset in the world. MODIS has been imaging the Earth every 1-2 days at 500m resolution since 2000. Combined with PRISM\'s 4km weather grids and 25 years of NASS county yield data — you have a satellite-powered Oracle that knows what the USDA will say before they say it.',
+  dbLinks: [
+    { name: 'NASA Earthdata (MODIS)', url: 'https://earthdata.nasa.gov/learn/find-data', color: '#3b82f6' },
+    { name: 'NOAA PRISM Climate Data', url: 'https://prism.oregonstate.edu/recent/', color: '#3b82f6' },
+    { name: 'USDA NASS Quick Stats API', url: 'https://quickstats.nass.usda.gov/api', color: '#3b82f6' },
+  ],
+  tech: ['Python','PyTorch','xarray','rasterio','GDAL','FastAPI','PostGIS','Plotly'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Satellite Pipeline', tasks: ['NASA Earthdata API bulk download','MODIS raster processing with rasterio','County-level spatial aggregation','Claude for geospatial documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'ML Model', tasks: ['Spatiotemporal LSTM implementation','Feature engineering: GDD, stress indices','Model validation vs NASS actuals','Claude extended thinking for time-series architecture'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Visualization', tasks: ['County yield deviation map (Mapbox)','Pre-USDA forecast dashboard','National aggregation charts','Claude code gen for geospatial React components'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Agronomy Research', tasks: ['Crop-specific growth stage parameters','USDA WASDE format analysis','Agricultural market research','Claude document analysis on agronomy papers'] },
+  ]
+},
+
+{
+  id: 'floodprice', name: 'FloodPrice', cat: 'climate', diff: 'hard',
+  tagline: 'True flood risk pricing using NOAA storm data + FHFA mortgage records — revealing what insurers hide from homebuyers.',
+  desc: 'Integrates NOAA\'s 130-year storm event database with FHFA loan-level mortgage performance data to build property-level flood risk scores that account for climate change trajectory — revealing a $500B mispricing in US residential real estate markets.',
+  dbs: ['NOAA Storm Events','FHFA Loan Performance','FEMA National Flood Hazard Layer','First Street Foundation'],
+  market: '$1.3T in flood-exposed real estate',
+  mvp: '5–6 weeks',
+  problem: 'FEMA\'s 100-year floodplain maps were drawn in the 1970s-1990s using pre-climate-change hydrology. 40% of flood-damaged homes are outside official flood zones. Buyers purchase $1M homes without knowing their true flood risk because the only legally-required disclosure is an outdated government map. Insurance companies know the truth — they\'re quietly exiting Florida, California, and Louisiana.',
+  whatItDoes: 'FloodPrice geocodes 130 years of NOAA storm event flood damage records to parcel-level coordinates, fuses with FHFA mortgage performance (mortgage defaults correlate with flood events), adds FEMA NFHL floodplain geometry, and trains a spatial XGBoost model calibrated to climate-adjusted return periods from NOAA\'s Atlas 14 precipitation frequency data.',
+  features: [
+    { icon: '🌊', name: 'Climate-Adjusted Return Period Model', desc: 'Updates FEMA 100-year flood probabilities using NOAA Atlas 14 precipitation trends — in many counties, the "100-year flood" is now a 40-year event.' },
+    { icon: '🏠', name: 'Property-Level Risk Score', desc: 'Parcel-level flood risk on a 1-100 scale accounting for elevation, proximity to water, drainage infrastructure, impervious surface growth, and storm surge exposure.' },
+    { icon: '📉', name: 'Home Value Impact Calculator', desc: 'Estimates property value discount at current vs true-risk insurance premium — reveals hidden value destruction baked into purchases made under incomplete risk disclosure.' },
+    { icon: '💸', name: 'Mortgage Default Predictor', desc: 'Cross-references FHFA loan performance with flood event dates — flood-exposed loans default at 3.4x base rate post-event. Useful for MBS pricing.' },
+    { icon: '🗺️', name: 'Regional Risk Heat Map', desc: 'County and ZIP-level flood risk visualization showing deviation from FEMA official maps — immediately shows where insurers are fleeing vs where they remain.' },
+    { icon: '🔔', name: 'Real Estate Transaction Alert', desc: 'API for real estate platforms: flag high-risk properties in listing search results before buyers make offers — the disclosure problem is solved at the top of the funnel.' },
+  ],
+  crazy: [
+    'Partner with Zillow or Redfin: their listings API + FloodPrice scores = the first real estate platform that shows true flood risk alongside price. They\'ve been trying to build this internally for 3 years.',
+    'MBS risk pricing: Freddie Mac and Fannie Mae hold $7.5T in mortgages. The ones in climate-exposed areas are systemically mispriced. FloodPrice risk scores → MBS tranche re-pricing tool for institutional fixed income.',
+    'Flood litigation support: class action lawsuits against developers who built in high-risk areas or disclosures that concealed flood risk. FloodPrice provides the quantitative flood history needed to establish liability.',
+    'Municipal bond risk: cities in high-flood-risk areas face property tax base erosion as values decline and flood events damage infrastructure. FloodPrice risk scores as input to municipal credit analysis.',
+  ],
+  wow: 'NOAA has 130 years of flood damage records. FHFA has loan-level performance data on $7T in mortgages. First Street Foundation has already shown that 14.6M US properties face substantial flood risk — 5x the FEMA estimate. The $500B mispricing is documented. Building the tool that reveals it to every homebuyer in America is a trillion-dollar opportunity wrapped in a public dataset.',
+  dbLinks: [
+    { name: 'NOAA Storm Events Database', url: 'https://www.ncdc.noaa.gov/stormevents/ftp.jsp', color: '#3b82f6' },
+    { name: 'FHFA Loan-Level Data', url: 'https://www.fhfa.gov/DataTools/Downloads/Pages/Loan-Level-Data.aspx', color: '#3b82f6' },
+    { name: 'FEMA NFHL API', url: 'https://hazards.fema.gov/femaportal/wps/portal/NFHLWMSkmzDownload', color: '#3b82f6' },
+  ],
+  tech: ['Python','GeoPandas','PostGIS','XGBoost','Mapbox GL','FastAPI','PostgreSQL','GDAL'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Geospatial Pipeline', tasks: ['NOAA Storm Events geocoding','FEMA NFHL geometry loading','Parcel-level spatial joins','Claude for PostGIS query generation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Risk Models', tasks: ['Climate-adjusted return period calculation','Property-level XGBoost risk scorer','FHFA default correlation analysis','Claude extended thinking for spatial statistics'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Map Interface', tasks: ['Mapbox flood risk overlay','Property search interface','Home value impact calculator UI','Claude code gen for Mapbox GL components'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Climate Research', tasks: ['Atlas 14 precipitation trend analysis','Insurance market exit research','Real estate disclosure law review','Claude for climate report analysis'] },
+  ]
+},
+
+{
+  id: 'oceanwatch', name: 'OceanWatch', cat: 'climate', diff: 'medium',
+  tagline: 'Detect illegal fishing and forced labor at sea using Global Fishing Watch AIS data — IUU fishing costs $23B/year.',
+  desc: 'Combines Global Fishing Watch\'s 70TB AIS vessel tracking database with Lloyd\'s vessel registry, ILO forced labor indicators, and NOAA marine protected area boundaries to detect IUU (Illegal, Unreported, and Unregulated) fishing and forced labor incidents at sea in near-real-time.',
+  dbs: ['Global Fishing Watch','AIS MarineTraffic','Lloyd\'s Vessel Registry','NOAA MPAs'],
+  market: '$23B annual IUU fishing economic harm',
+  mvp: '4–5 weeks',
+  problem: 'IUU fishing costs the global economy $23B annually, depletes fish stocks, destroys marine ecosystems, and is directly linked to forced labor and human trafficking at sea. 90% of IUU vessels are currently undetected by authorities. Global Fishing Watch has built the AIS database — but hasn\'t productized detection at scale.',
+  whatItDoes: 'OceanWatch ingests Global Fishing Watch\'s open AIS data API, applies DBSCAN clustering to identify fishing behavior patterns (loitering, gear deployment signatures), flags AIS dark periods (transponder shutoffs) correlated with MPA boundaries or restricted zones, and cross-references with Lloyd\'s vessel registry for ownership network analysis.',
+  features: [
+    { icon: '🚢', name: 'AIS Behavior Classifier', desc: 'DBSCAN + HMM-based classifier distinguishing fishing from transiting from loitering behavior — validated against Global Fishing Watch\'s manually-labeled ground truth dataset.' },
+    { icon: '🔇', name: 'Dark Vessel Detector', desc: 'Flags vessels that disable AIS transponders in MPA boundaries or internationally-agreed exclusion zones — primary indicator of active IUU fishing.' },
+    { icon: '⚓', name: 'Ship-to-Ship Transfer Detector', desc: 'Identifies at-sea transshipment events (vessels that meet at sea and transfer catch) — the primary method IUU vessels use to launder catch into legal supply chains.' },
+    { icon: '🕸️', name: 'Beneficial Ownership Network', desc: 'Maps vessel → company → ultimate beneficial owner chains using OpenCorporates + Lloyd\'s registry to identify serial violators across flag state changes.' },
+    { icon: '👷', name: 'Forced Labor Risk Scorer', desc: 'ILO forced labor indicator checklist automated from vessel crew change records, port call patterns, and flag state risk scores — generates FSC audit flags.' },
+    { icon: '📊', name: 'Catch Laundering Tracker', desc: 'Follows fish supply chain from vessel to first sale port, cross-referencing declared catch volumes with fishing effort estimates from AIS behavior analysis.' },
+  ],
+  crazy: [
+    'Satellite SAR (Synthetic Aperture Radar) integration: ESA Sentinel-1 SAR can detect vessels that are AIS-dark by their radar return signature — ESA provides free API access. Catches vessels that deliberately shut off transponders.',
+    'Seafood supply chain transparency tool: supermarkets and restaurant chains pay for verified supply chain provenance. Whole Foods, Costco, and McDonald\'s have mandatory seafood sustainability commitments — this is their audit infrastructure.',
+    'Carbon credit eligibility for MPA compliance: fisheries that demonstrably reduce illegal fishing in their zones can monetize it as biodiversity credits under emerging voluntary carbon market frameworks.',
+    'Government partnership: Coast Guards of 30+ nations use basic AIS monitoring. OceanWatch\'s ML detection layer can be white-labeled at national level — USAID and State Department fund ocean governance programs.',
+  ],
+  wow: 'Global Fishing Watch has processed 70TB of AIS data and made it freely accessible via API. It covers every commercial fishing vessel on Earth. Combined with Sentinel-1 SAR imagery (also free) and vessel registry data, you can find fishing vessels that don\'t exist in any database. The environmental NGO community, governments, and sustainable seafood industry would pay enormous amounts for this.',
+  dbLinks: [
+    { name: 'Global Fishing Watch API', url: 'https://globalfishingwatch.org/data/open-data-api-documentation/', color: '#3b82f6' },
+    { name: 'NOAA Marine Protected Areas', url: 'https://marineprotectedareas.noaa.gov/dataanalysis/mpainventory/', color: '#3b82f6' },
+    { name: 'Copernicus Marine Service', url: 'https://marine.copernicus.eu/', color: '#3b82f6' },
+  ],
+  tech: ['Python','DBSCAN','GeoPandas','PostGIS','FastAPI','Mapbox GL','NetworkX','React'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'AIS Pipeline', tasks: ['Global Fishing Watch API integration','AIS data preprocessing + vessel tracking','MPA boundary overlay pipeline','Claude for maritime data documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Behavior ML', tasks: ['DBSCAN fishing behavior classifier','HMM loitering/transshipment detector','AIS dark period anomaly detection','Claude extended thinking for trajectory analysis'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Ocean Map UI', tasks: ['Real-time vessel tracking map','Dark vessel alert dashboard','Ownership network graph UI','Claude code gen for maritime visualization'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Policy Research', tasks: ['IUU fishing literature review','ILO forced labor indicator research','Seafood certification market analysis','Claude document analysis on maritime law'] },
+  ]
+},
+
+{
+  id: 'wildfiregrid', name: 'WildfireGrid', cat: 'climate', diff: 'hard',
+  tagline: 'Wildfire spread predictor + evacuation router using NIFC incident data and NASA FIRMS real-time fire detections.',
+  desc: 'Integrates NASA FIRMS real-time active fire detections (1km resolution, 3-hour latency), NIFC historical incident data, USFS fuel moisture data, and NOAA weather forecasts to predict wildfire spread 24-72 hours in advance and optimize evacuation routing.',
+  dbs: ['NASA FIRMS','NIFC','USFS FuelMoisture','NOAA Weather'],
+  market: '$7.8B wildfire management market',
+  mvp: '5–7 weeks',
+  problem: 'The Camp Fire killed 85 people, destroyed 18,000 structures, and caused $16.5B in losses — and the town of Paradise had only 90 minutes warning. Most people attempted to evacuate on the same road simultaneously. A real-time spread prediction + evacuation optimization system would have routed people on alternative paths before gridlock.',
+  whatItDoes: 'WildfireGrid ingests NASA FIRMS active fire alerts (3-hour latency, 375m resolution from VIIRS sensor), applies a physics-informed cellular automaton spread model calibrated on NIFC historical fire perimeter data, fuses with NOAA wind forecasts and fuel moisture data, and outputs probabilistic fire spread maps + optimized household-level evacuation routing.',
+  features: [
+    { icon: '🔥', name: 'Real-Time Fire Perimeter Tracker', desc: 'NASA FIRMS VIIRS (375m, 3-hour latency) + MODIS (1km, twice daily) active fire detections assembled into live fire perimeter polygons updated hourly.' },
+    { icon: '💨', name: 'Physics-Informed Spread Predictor', desc: 'Rothermel fire behavior equations calibrated to NIFC historical fire progression data — outputs probabilistic 24/48/72-hour fire perimeter scenarios under different wind conditions.' },
+    { icon: '🚗', name: 'Evacuation Route Optimizer', desc: 'Dynamic routing algorithm using real-time road network capacity + predicted fire spread — assigns households to optimal evacuation routes to prevent gridlock.' },
+    { icon: '📡', name: 'Structure Damage Estimator', desc: 'Combines fire spread probability with parcel-level structure exposure (wood frame vs fire-resistant) to estimate structure loss pre-event for insurance pre-positioning.' },
+    { icon: '🌲', name: 'Fuel Moisture Alert System', desc: 'Integrates USFS RAWS station fuel moisture readings + satellite drought indices (NDWI) — triggers preparedness alerts when live/dead fuel moisture falls to critical thresholds.' },
+    { icon: '📱', name: 'Emergency Manager Dashboard', desc: 'Real-time operational dashboard for OES/Cal OES emergency managers: active fires, predicted spread, evacuation zone triggers, shelter-in-place vs evacuation decision support.' },
+  ],
+  crazy: [
+    'Insurance pricing integration: pre-fire structure loss probability → trigger parametric insurance payouts for properties in >70% probability zones before fire arrival. Lloyd\'s and Swiss Re already have parametric wildfire structures.',
+    'Power grid wildfire safety: PG&E spends $1.5B annually on Public Safety Power Shutoffs (PSPS). WildfireGrid\'s 72-hour spread predictions can make PSPS targeting 3x more precise — reducing customer shutoff hours while maintaining safety.',
+    'Wildfire carbon accounting: NIFC has perimeter data for every major fire since 1980. Calculate total carbon released by each fire event and the subsequent reforestation timeline — input to voluntary carbon markets for reforestation credits.',
+    'Military/aviation fire line asset positioning: CalFire and USFS pay $15,000+/hour for air tanker deployment. Optimal asset pre-positioning based on 24-hour spread probability dramatically reduces response time.',
+  ],
+  wow: 'NASA broadcasts active fire detections globally with 3-hour latency from the VIIRS sensor on the Suomi NPP satellite. NIFC has the geographic perimeters of every significant US wildfire since 1992. Fuse these with Rothermel physics (the industry-standard fire spread equation) and you have a predictive system better than what 90% of state emergency management agencies are using today — and the underlying data is completely free.',
+  dbLinks: [
+    { name: 'NASA FIRMS Active Fire Data', url: 'https://firms.modaps.eosdis.nasa.gov/api/area/', color: '#3b82f6' },
+    { name: 'NIFC Fire Occurrence Data', url: 'https://www.nifc.gov/fire-information/statistics/wildfires', color: '#3b82f6' },
+    { name: 'NOAA HRRR Weather API', url: 'https://rapidrefresh.noaa.gov/hrrr/', color: '#3b82f6' },
+  ],
+  tech: ['Python','GDAL','GeoPandas','cellular automaton','FastAPI','Mapbox GL','PostGIS','React'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Fire Data Pipeline', tasks: ['NASA FIRMS API integration','NIFC fire perimeter data processing','NOAA weather grid fusion','Claude for geospatial pipeline documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Spread Model', tasks: ['Rothermel fire behavior implementation','Cellular automaton spread simulator','Probabilistic scenario generator','Claude extended thinking for fire physics modeling'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Emergency Dashboard', tasks: ['Real-time fire map (Mapbox GL)','Evacuation route visualization','Emergency manager decision UI','Claude code gen for real-time dashboard'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Policy & Research', tasks: ['Camp Fire case study reconstruction','Emergency management workflow research','Insurance parametric product research','Claude document analysis on wildfire literature'] },
+  ]
+},
+
+// ──────────────── LEGAL ────────────────
+
+{
+  id: 'caseprophet', name: 'CaseProphet', cat: 'legal', diff: 'hard',
+  tagline: 'Federal litigation outcome predictor + judge behavior profiler from 3.5M CourtListener PACER cases.',
+  desc: 'Trains legal outcome prediction models on CourtListener\'s 3.5M+ federal court opinions and PACER case data to predict: win/loss probability for motions, judge-specific ruling tendencies, venue selection recommendations, and settlement timing optimization.',
+  dbs: ['CourtListener RECAP','PACER','Justia Federal Case Law'],
+  market: '$35B legal analytics market',
+  mvp: '6–8 weeks',
+  problem: 'Litigation outcome is currently predicted by experienced lawyers using pattern matching from memory. But memory is biased, incomplete, and non-systematic. LegalZoom, Westlaw, and Lexis Nexis charge $500-1500/hour for research that a fine-tuned LLM trained on 3.5M cases can do in seconds — and the model has actually read all 3.5M cases, not just the ones the lawyer happened to encounter.',
+  whatItDoes: 'CaseProphet fine-tunes Legal-BERT on CourtListener\'s complete corpus, trains judge-specific logistic regression models on their full decision history, and builds a motion outcome predictor calibrated to the specific judge, venue, claim type, and filing party characteristics.',
+  features: [
+    { icon: '⚖️', name: 'Judge Behavior Profiler', desc: 'Per-judge ruling statistics across motion types (MTD, MSJ, TRO, class certification) — how often does Judge X grant plaintiff\'s motions to dismiss vs defendant\'s? Updated monthly from PACER.' },
+    { icon: '🎯', name: 'Motion Outcome Predictor', desc: 'Legal-BERT fine-tuned on judge + claim type + filing party → ruling pairs predicts grant/deny probability with 73% AUC on held-out federal district court motions.' },
+    { icon: '🏛️', name: 'Venue Selection Optimizer', desc: 'For multi-district cases, ranks available venues by historical plaintiff/defendant win rates, case duration, and judge assignment probabilities.' },
+    { icon: '💰', name: 'Settlement Timing Optimizer', desc: 'Analyzes case trajectory milestones against historical settlement patterns — identifies the optimal moment to initiate settlement discussions based on judge behavior signals.' },
+    { icon: '📊', name: 'Opposing Counsel Tracker', desc: 'Analyzes opposing law firm\'s historical litigation style: motion volume, discovery patterns, trial vs settlement preference, win/loss rates in comparable cases.' },
+    { icon: '🔍', name: 'Similar Case Finder', desc: 'Semantic search across 3.5M cases using Legal-BERT embeddings — finds the most factually and legally analogous precedents instantly, stratified by circuit.' },
+  ],
+  crazy: [
+    'Expert witness outcome analysis: cross-reference expert witness appearances against case outcomes — which experts statistically move verdicts? Litigators would pay $50k/year for this signal alone.',
+    'Litigation finance pricing: litigation finance funds (Burford Capital, Omni Bridgeway) price case investments based on outcome probability. CaseProphet as their underwriting engine — addressable market is $15B in active litigation finance.',
+    'International expansion: UK BAILII (500k cases), EU CURIA (45k ECJ cases), Australian AustLII (1.2M cases) — same architecture, international law firm market is 3x larger than US.',
+    'Merger antitrust clearance predictor: DOJ and FTC challenge ~3% of mergers but withdraw ~70% of challenged deals at settlement. Predict clearance probability before deal announcement — massive M&A advisory value.',
+  ],
+  wow: 'CourtListener has 3.5 million federal court opinions freely available via API. Every judge in America has a public decision history. The difference between winning and losing a $100M case can come down to knowing that Judge X denies class certification 78% of the time while Judge Y grants it 52% of the time — and that\'s just one judge-level data point. We have all of them.',
+  dbLinks: [
+    { name: 'CourtListener RECAP Archive', url: 'https://www.courtlistener.com/api/rest/v3/', color: '#8b5cf6' },
+    { name: 'PACER Case Locator', url: 'https://pcl.uscourts.gov/', color: '#8b5cf6' },
+    { name: 'Justia US Law', url: 'https://law.justia.com/cases/federal/district-courts/', color: '#8b5cf6' },
+  ],
+  tech: ['Python','Legal-BERT','scikit-learn','Elasticsearch','FastAPI','PostgreSQL','React','SHAP'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Legal Data Pipeline', tasks: ['CourtListener API bulk download','PACER case metadata ingestion','Judge-case-outcome database build','Claude for legal data schema design'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Outcome Models', tasks: ['Legal-BERT fine-tuning on CourtListener','Per-judge logistic regression models','Motion outcome classifier training','Claude extended thinking for legal ML design'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Legal Interface', tasks: ['Judge profiler dashboard','Case outcome probability UI','Similar case semantic search','Claude code gen for legal research UI'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Legal Research', tasks: ['Legal precedent methodology review','Law firm GTM strategy research','Bar association ethics review','Claude document analysis for legal opinions'] },
+  ]
+},
+
+{
+  id: 'patentscan', name: 'PatentScan', cat: 'legal', diff: 'medium',
+  tagline: 'Instant prior art detection and competitor R&D intelligence from USPTO\'s 10M patent database.',
+  desc: 'Indexes all 10M+ USPTO patents and 4M+ patent applications using SciBERT embeddings and claim-level semantic search to provide instant prior art detection for inventors and track competitor R&D pipelines 18 months before products ship.',
+  dbs: ['USPTO PatentsView','Google Patents API','EPO Open Patent Services','WIPO PATENTSCOPE'],
+  market: '$12B IP management market',
+  mvp: '4–5 weeks',
+  problem: 'Prior art searches cost $2,500-10,000 from IP law firms and take 2-4 weeks. 50% of patent rejections are for prior art that the inventor could have identified with better search tools. Meanwhile, companies spend billions on R&D to solve problems that are already patented — and miss competitive intelligence in competitor patent filings 18 months before products launch.',
+  whatItDoes: 'PatentScan generates SciBERT embeddings for every USPTO patent claim (250M+ claim vectors), enables semantic similarity search that finds prior art missed by keyword search, and builds competitor R&D tracking dashboards that surface new filings by company, inventor, technology area, and geographic expansion patterns.',
+  features: [
+    { icon: '🔍', name: 'Semantic Prior Art Engine', desc: 'SciBERT embeddings + FAISS index across 10M patent claim sets — finds semantically similar claims missed by keyword search. Validated: finds prior art in 34% of cases where keyword search fails.' },
+    { icon: '🏢', name: 'Competitor R&D Tracker', desc: 'Monitors competitor patent filings in real-time — surfaces new applications 18 months before products ship, revealing technology bets and R&D investment areas.' },
+    { icon: '📊', name: 'Technology Landscape Mapper', desc: 'Cluster patent portfolios by technology area using topic modeling — reveals white space opportunities and crowded areas in any technical field.' },
+    { icon: '⚠️', name: 'Freedom-to-Operate Scanner', desc: 'For a given product description, identifies active patents that may create infringement liability — preliminary FTO analysis in minutes vs weeks.' },
+    { icon: '💰', name: 'Patent Value Estimator', desc: 'Citation network analysis + forward citation velocity + litigation history → patent portfolio valuation model. Validated against patent transaction prices.' },
+    { icon: '🌍', name: 'International Filing Pattern Analyzer', desc: 'Tracks PCT filings and EPO/WIPO national phase entries — companies that file internationally signal highest-value inventions and foreign market expansion intent.' },
+  ],
+  crazy: [
+    'NPE/patent troll early warning: companies with aggressive assertion histories that are actively acquiring patents in your technology area — identify the threat before they show up with a demand letter.',
+    'Acquisition target identification: companies with strong patent portfolios in adjacent technology areas are M&A targets. PatentScan produces IP-based acquisition screening for corporate development teams.',
+    'University tech transfer pipeline: 80% of university patents are unlicensed. PatentScan can identify university IP that is directly relevant to a company\'s R&D — automated tech transfer prospecting.',
+    'AI-generated patent drafting assistant: take a product description → semantic search for related patents → identify unclaimed claim space → draft patent claims that avoid prior art. $10k → $1k patent drafting.',
+  ],
+  wow: 'PatentsView.org (USPTO-funded) has every US patent since 1975 as structured data, including inventor networks, citation graphs, and technology classifications. 10 million patents. 60 million citations. 3 million inventors. The R&D intelligence embedded in this dataset — who is working on what, where the technology is going, which companies are pivoting — is unmatched by any private database.',
+  dbLinks: [
+    { name: 'USPTO PatentsView API', url: 'https://patentsview.org/apis/api-endpoints', color: '#8b5cf6' },
+    { name: 'Google Patents API', url: 'https://developers.google.com/patent-search', color: '#8b5cf6' },
+    { name: 'EPO Open Patent Services', url: 'https://www.epo.org/searching-for-patents/data/web-services/ops.html', color: '#8b5cf6' },
+  ],
+  tech: ['Python','SciBERT','FAISS','Elasticsearch','FastAPI','PostgreSQL','React','D3.js'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Patent Data Pipeline', tasks: ['PatentsView bulk download + ingestion','USPTO API real-time patent monitoring','Citation network database build','Claude for patent data documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Semantic Search', tasks: ['SciBERT patent embedding generation','FAISS index build + optimization','Patent similarity scoring','Claude extended thinking for embedding strategies'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'IP Intelligence UI', tasks: ['Prior art search interface','Competitor R&D tracker dashboard','Technology landscape visualization','Claude code gen for patent analytics UI'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'IP Research', tasks: ['Patent law basics research','FTO methodology documentation','IP market sizing research','Claude document analysis on patent case law'] },
+  ]
+},
+
+{
+  id: 'contractshield', name: 'ContractShield', cat: 'legal', diff: 'medium',
+  tagline: 'Federal contractor debarment early warning — detect vendor fraud signals in USASpending + PACER + EDGAR before contracts are cancelled.',
+  desc: 'Cross-references SAM.gov exclusion records, USASpending contract performance data, PACER criminal proceedings, and SEC EDGAR enforcement actions to build a federal contractor risk score — helping agencies avoid awarding contracts to high-risk vendors and helping compliant contractors prove their integrity.',
+  dbs: ['SAM.gov Exclusions','USASpending.gov','CourtListener PACER','SEC EDGAR Enforcement'],
+  market: '$4B government vendor risk management market',
+  mvp: '4–5 weeks',
+  problem: 'The federal government awards contracts to vendors that are actively under criminal investigation, have SEC enforcement actions pending, or have prior contract performance failures — because data silos prevent contracting officers from connecting these dots. $50B+ is wasted annually on poor vendor selection and contract failures.',
+  whatItDoes: 'ContractShield ingests SAM.gov active exclusions + debarment history, PACER criminal docket monitoring for federal contractor parent companies, SEC enforcement action database, CPARS performance ratings (when available), and USASpending contract termination/modification patterns to build a comprehensive vendor risk score updated weekly.',
+  features: [
+    { icon: '🚫', name: 'Debarment & Exclusion Monitor', desc: 'Real-time monitoring of SAM.gov exclusion database — alerts when any contractor in your supply chain is debarred or suspended, within 24 hours of publication.' },
+    { icon: '⚖️', name: 'PACER Criminal Proceeding Watcher', desc: 'Monitors federal criminal court dockets for DOJ indictments, guilty pleas, and convictions involving contractor parent companies, subsidiaries, and principals.' },
+    { icon: '📊', name: 'Contract Performance Risk Score', desc: 'ML model on USASpending contract termination patterns, modification velocity, and spending rate anomalies — predicts contract failure risk before it happens.' },
+    { icon: '🔍', name: 'Corporate Affiliate Network Scanner', desc: 'Debarred companies frequently re-emerge under new names or subsidiaries. ContractShield maps ownership networks (via OpenCorporates) to catch affiliated entity risk.' },
+    { icon: '📋', name: 'SEC Enforcement Correlation', desc: 'Correlates SEC enforcement actions (accounting fraud, bribery, FCPA violations) against contractor EIN/D-U-N-S numbers — often predicts contract failures 12+ months early.' },
+    { icon: '✅', name: 'Contractor Integrity Certification', desc: 'Compliant contractors get a ContractShield Verified badge backed by real-time data monitoring — a differentiated marketing asset in competitive contract bids.' },
+  ],
+  crazy: [
+    'Supply chain integrity tool: prime contractors are responsible for their subcontractors\' compliance. A $500M prime contractor managing 200 subs needs real-time visibility into all sub risk levels — massive SaaS opportunity.',
+    'DOD CMMC compliance integration: the DoD\'s Cybersecurity Maturity Model Certification requires continuous vendor monitoring. ContractShield becomes the risk monitoring layer for CMMC Levels 2 and 3.',
+    'International anti-corruption: World Bank, IADB, and ADB maintain debarment lists for their funded projects across 180+ countries. Build the global version for multilateral development bank procurement.',
+    'Real-time congressional oversight tool: congressional investigators researching contractor fraud can query ContractShield\'s risk model rather than spending months combing through PACER — sell to oversight committee staff.',
+  ],
+  wow: 'SAM.gov publishes a real-time exclusion database. PACER is public. SEC enforcement is public. USASpending contract data is public. But no contracting officer is connecting all four databases before awarding a $50M contract. We automate what the GAO Inspector General does manually after the fraud has already happened.',
+  dbLinks: [
+    { name: 'SAM.gov Exclusions API', url: 'https://open.gsa.gov/api/exclusions-api/', color: '#8b5cf6' },
+    { name: 'SEC Enforcement Actions', url: 'https://www.sec.gov/litigation/enforcements.shtml', color: '#8b5cf6' },
+    { name: 'USASpending API', url: 'https://api.usaspending.gov/', color: '#8b5cf6' },
+  ],
+  tech: ['Python','NetworkX','FastAPI','PostgreSQL','Elasticsearch','React','Celery','Docker'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Multi-Source Pipeline', tasks: ['SAM.gov exclusion API integration','USASpending contract performance ETL','SEC enforcement actions scraper','Claude for compliance data documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Risk Scoring', tasks: ['Contract failure prediction model','Corporate network analysis','Risk score composite calibration','Claude extended thinking for risk modeling'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Compliance Dashboard', tasks: ['Vendor risk score interface','Alert monitoring dashboard','Integrity certification badge system','Claude code gen for compliance UI components'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Regulatory Research', tasks: ['FAR debarment regulations research','CPARS performance system analysis','Government market GTM strategy','Claude document analysis on procurement law'] },
+  ]
+},
+
+// ──────────────── INFRASTRUCTURE ────────────────
+
+{
+  id: 'buildpulse', name: 'BuildPulse', cat: 'infra', diff: 'medium',
+  tagline: 'Construction activity as economic indicator — satellite building footprints + permits create a GDP nowcast 30 days early.',
+  desc: 'Combines Microsoft\'s 125M building footprint dataset with local municipality permit records to detect new construction activity at county level, creating a construction investment indicator that leads traditional GDP construction component data by 4-6 weeks.',
+  dbs: ['Microsoft Building Footprints','OpenStreetMap','Census Building Permits','Esri ArcGIS'],
+  market: '$8B economic data and analytics market',
+  mvp: '4–5 weeks',
+  problem: 'GDP construction data is released 6 weeks after quarter-end. Census building permits data is available with 6-week lag. Yet construction cranes and building footprints are visible from satellite in real-time. Hedge funds, real estate investors, and supply chain companies make billion-dollar decisions on stale data when the truth is visible from orbit.',
+  whatItDoes: 'BuildPulse downloads Microsoft\'s 125M global building footprints (derived from satellite imagery), compares against prior period to detect new structures, correlates with Census permit data to calibrate construction stage detection, and produces a monthly county-level construction activity index that leads official economic statistics.',
+  features: [
+    { icon: '🏗️', name: 'Satellite Footprint Change Detector', desc: 'Compares consecutive Microsoft Building Footprint releases to detect new construction, demolition, and renovation activity at 0.5m² resolution across 125M structures.' },
+    { icon: '📋', name: 'Municipal Permit Integrator', desc: 'Scrapes and normalizes building permit APIs from 500+ US municipalities — real-time permit issuance data provides 2-3 month leading indicator of construction starts.' },
+    { icon: '📈', name: 'Construction Activity Index', desc: 'County-level composite index combining satellite footprint changes + permit data + contractor job posting data (BLS JOLTS) — leads Census permit data by 4-6 weeks.' },
+    { icon: '🏘️', name: 'Housing Supply Forecaster', desc: 'Predicts new housing inventory additions by market 90 days in advance — critical for real estate price forecasting and rental market dynamics.' },
+    { icon: '🔧', name: 'Building Materials Demand Signal', desc: 'Translate construction activity by stage into demand forecasts for specific materials: lumber (framing), concrete (foundation), copper (electrical), HVAC units.' },
+    { icon: '💼', name: 'Economic Development Tracker', desc: 'Identifies emerging industrial construction clusters before they appear in business news — large warehouse/distribution center developments signal e-commerce market expansion.' },
+  ],
+  crazy: [
+    'China construction monitoring: Microsoft\'s Building Footprints dataset covers China, where official economic statistics are notoriously unreliable. An independent construction activity measure for Chinese provinces would be worth billions to investors who distrust NBS data.',
+    'REIT earnings predictor: construction activity in a REIT\'s target markets leads revenue 12-18 months out. BuildPulse signals as a quantitative input to REIT earnings models.',
+    'Insurance exposure mapping: insurance companies need accurate building count and type data by county for CAT model exposure. BuildPulse is continuously updated vs FEMA\'s static hazard databases.',
+    'Supply chain logistics optimization: knowing where construction is accelerating predicts demand spikes for lumber, concrete, HVAC, etc. — commodity traders and building materials distributors would pay for 90-day demand forecasts.',
+  ],
+  wow: 'Microsoft published 125 million building footprints for the US, covering every structure visible from Bing Satellite imagery — completely free. Nobody has built a systematic economic indicator from footprint change detection. This is essentially a satellite-powered construction survey that updates monthly rather than annually. The BEA publishes GDP quarterly; we publish construction GDP weekly.',
+  dbLinks: [
+    { name: 'Microsoft Building Footprints', url: 'https://github.com/microsoft/USBuildingFootprints', color: '#f97316' },
+    { name: 'Census Building Permits API', url: 'https://www.census.gov/construction/bps/', color: '#f97316' },
+    { name: 'OpenStreetMap Buildings', url: 'https://www.openstreetmap.org/', color: '#f97316' },
+  ],
+  tech: ['Python','GeoPandas','GDAL','PostGIS','FastAPI','PostgreSQL','Plotly','Celery'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Footprint Pipeline', tasks: ['Microsoft Footprint bulk download','Footprint change detection algorithm','Census permit scraper + normalizer','Claude for geospatial documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Economic Modeling', tasks: ['Construction activity index design','Leading indicator validation vs GDP','Building materials demand model','Claude extended thinking for econometric methodology'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Index Dashboard', tasks: ['County-level construction heat map','Activity index trend charts','Permit + footprint correlation UI','Claude code gen for economic dashboard'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Market Research', tasks: ['Economic indicator literature review','Hedge fund use case research','Building materials market sizing','Claude document analysis on construction economics'] },
+  ]
+},
+
+{
+  id: 'mortgagemap', name: 'MortgageMap', cat: 'infra', diff: 'hard',
+  tagline: 'FHFA loan-level data reveals neighborhood foreclosure risk 18 months before it hits Zillow or the news.',
+  desc: 'Analyzes FHFA loan-level mortgage performance data (28M+ active loans) using survival analysis and ML to identify ZIP-code-level foreclosure risk clusters 18 months in advance — ahead of any publicly-visible signal in listing prices or delinquency news.',
+  dbs: ['FHFA Loan Performance','HMDA','Census ACS','CoreLogic (via research access)'],
+  market: '$4.5B mortgage analytics market',
+  mvp: '5–6 weeks',
+  problem: 'Mortgage defaults cluster geographically and by loan vintage. FHFA publishes quarterly loan-level performance data for all Freddie Mac and Fannie Mae backed loans — covering 70% of US mortgages. But nobody has built a consumer-facing ZIP-code risk tool that uses this to predict neighborhood-level distress 18 months before foreclosures appear in MLS listings.',
+  whatItDoes: 'MortgageMap ingests FHFA\'s Single-Family Loan-Level Dataset (SFLLD), computes ZIP-code-level delinquency transition rates using survival analysis (time-to-default models), layers in HMDA origination data to understand loan vintage quality, and builds an 18-month foreclosure risk score for every US ZIP code.',
+  features: [
+    { icon: '📊', name: 'Delinquency Transition Model', desc: 'Cox proportional hazards survival model on loan-level 30/60/90/120+ day delinquency transitions — predicts ZIP-code-level default rates 18 months forward.' },
+    { icon: '🗺️', name: 'ZIP-Code Risk Heat Map', desc: 'Color-coded national foreclosure risk map by ZIP code — users can search their area and see 18-month risk trajectory vs national peer group.' },
+    { icon: '🏠', name: 'Loan Vintage Quality Analyzer', desc: 'HMDA data reveals loan quality by origination year/quarter: LTV, DTI, credit score distribution, documentation type. 2005-2007 vintage = high risk; 2020-2021 = lower risk but rate-sensitive.' },
+    { icon: '💰', name: 'Distressed Property Finder', desc: 'Identifies ZIP codes with rising 90+ day delinquency rates 18 months before foreclosures list — real estate investors identify distressed markets before competition.' },
+    { icon: '📈', name: 'Refinance Risk Monitor', desc: 'Tracks how many loans in each ZIP are underwater (negative equity) using FHFA HPI + loan balance data — predicts refinance freeze and walk-away risk.' },
+    { icon: '🏦', name: 'Servicer Performance Ranker', desc: 'Ranks mortgage servicers by delinquency resolution speed and loss mitigation effectiveness across comparable loan pools — predicts which servicers generate lower GSE losses.' },
+  ],
+  crazy: [
+    'CRA compliance tool: Community Reinvestment Act requires banks to serve low-moderate income communities. HMDA + FHFA data shows which lenders are actually serving these areas vs cherry-picking. Sell to fair lending compliance officers.',
+    'CMBS extension: Trepp and Bloomberg charge $50k/year for commercial mortgage monitoring. FHFA publishes equivalent multifamily data — build the commercial version for a fraction of the cost.',
+    'Homebuilder land acquisition intelligence: foreclosure clusters signal depressed land prices 24 months later when REO inventory peaks. Homebuilders (Lennar, D.R. Horton) would pay for land acquisition timing signals.',
+    'Property tax appeal automation: when foreclosure risk rises in a neighborhood and values haven\'t adjusted, properties are over-assessed. Identify and file property tax appeals on behalf of homeowners — contingency fee model.',
+  ],
+  wow: 'FHFA publishes loan-level performance data on 28 million active Freddie/Fannie loans every quarter. Each record has origination LTV, current balance, delinquency status, modification history, and geographic data. This is the complete credit file on 70% of American mortgages — publicly available. Wall Street traders have been using proprietary versions of this for 20 years. We\'re building the public version.',
+  dbLinks: [
+    { name: 'FHFA Single-Family Loan Data', url: 'https://www.fhfa.gov/DataTools/Downloads/Pages/Public-Use-Databases.aspx', color: '#f97316' },
+    { name: 'HMDA Data Browser', url: 'https://ffiec.cfpb.gov/data-browser/', color: '#f97316' },
+    { name: 'Census ACS API', url: 'https://www.census.gov/data/developers/data-sets/acs-5year.html', color: '#f97316' },
+  ],
+  tech: ['Python','lifelines (survival analysis)','XGBoost','GeoPandas','FastAPI','PostgreSQL','Mapbox','React'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Mortgage Data Pipeline', tasks: ['FHFA SFLLD bulk download + parse','HMDA origination data integration','ZIP-code aggregation pipeline','Claude for financial data schema documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Default Models', tasks: ['Cox hazard model for delinquency transitions','18-month forecast calibration','Loan vintage quality scoring','Claude extended thinking for survival analysis'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Risk Map Interface', tasks: ['ZIP-code foreclosure risk map','Neighborhood comparison tool','Distressed property finder UI','Claude code gen for Mapbox choropleth'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Real Estate Research', tasks: ['Mortgage market cycle research','Real estate investor use case analysis','CRA compliance market sizing','Claude document analysis on mortgage regulations'] },
+  ]
+},
+
+{
+  id: 'gridintel', name: 'GridIntel', cat: 'infra', diff: 'hard',
+  tagline: 'EIA electricity data + weather + demand forecasting = the grid stress detector that predicts blackouts and renewable opportunities.',
+  desc: 'Fuses EIA-930 real-time grid operator data (hourly generation by fuel type, demand, interchange), NOAA weather forecasts, and FERC transmission constraint data to predict grid stress events 48 hours in advance and identify optimal renewable energy development opportunities by region.',
+  dbs: ['EIA-930 Grid Data','FERC OASIS','NOAA Weather API','EPA eGRID'],
+  market: '$280B electricity market infrastructure',
+  mvp: '5–7 weeks',
+  problem: 'The Texas power crisis of February 2021 killed 246 people and caused $195B in economic damage. ERCOT had data showing thermal generator failure risk under extreme cold — but no integrated system to correlate that risk with weather forecasts, demand projections, and reserve margins in a single actionable dashboard. Every US grid operator has this same data gap.',
+  whatItDoes: 'GridIntel ingests EIA-930\'s real-time hourly generation data for all 7 US grid operators (MISO, PJM, CAISO, SPP, ERCOT, NYISO, ISONE), applies LSTM-based demand forecasting calibrated to NOAA weather, models reserve margin trajectories under extreme weather scenarios, and surfaces stress alerts with 48-hour lead time.',
+  features: [
+    { icon: '⚡', name: 'Real-Time Grid Stress Monitor', desc: 'EIA-930 streaming data shows current generation mix, demand, imports/exports by balancing authority — reserve margin calculated in real time against seasonal reliability thresholds.' },
+    { icon: '🌡️', name: 'Weather-Demand LSTM Forecaster', desc: 'LSTM trained on 5+ years of EIA-930 hourly demand + NOAA weather data per grid operator — predicts 48-hour demand trajectory under current weather forecast with ±2.1% MAPE.' },
+    { icon: '🔋', name: 'Thermal Generator Risk Model', desc: 'Tracks generator availability by fuel type and models forced outage rates under temperature extremes — the missing link in the Texas 2021 crisis analysis.' },
+    { icon: '☀️', name: 'Renewable Opportunity Mapper', desc: 'Cross-references transmission constraint data (FERC OASIS) with wind/solar resource quality (NREL ATB) and curtailment rates — identifies optimal locations for new renewable development.' },
+    { icon: '📈', name: 'LMP Price Spike Predictor', desc: 'Locational Marginal Price spike prediction using supply-demand balance signals — predicts $500+/MWh price events 6 hours in advance for energy traders.' },
+    { icon: '🏭', name: 'Carbon Intensity Tracker', desc: 'EPA eGRID emissions factors + real-time generation mix → real-time grid carbon intensity (lbs CO₂/MWh) per balancing authority — enables corporate 24/7 carbon-free energy matching.' },
+  ],
+  crazy: [
+    'Demand response trading: when GridIntel predicts grid stress, industrial customers who can curtail load within 15 minutes are extremely valuable. Build the demand response brokerage platform — automated load curtailment contracts worth $50-150/MWh during stress events.',
+    'Transmission investment intelligence: FERC OASIS data shows which transmission paths are chronically constrained. The Midcontinent transmission buildout requires $30B in investment — GridIntel identifies the highest-value segments.',
+    'Utility earnings predictor: grid stress events, extreme weather, and renewable curtailment directly impact utility earnings. GridIntel\'s 48-hour stress signals are a leading indicator for utility stock movements.',
+    'Microgrid and battery storage siting: the optimal location for grid-scale storage is where transmission constraints cause the largest LMP spreads. GridIntel identifies these "batteries in the right place" opportunities automatically.',
+  ],
+  wow: 'EIA-930 is one of the most underutilized datasets in the world. It streams real-time generation and demand data for every US balancing authority with hourly granularity. The Texas blackout in 2021 was predictable from this data — thermal capacity vs forecast demand vs weather extreme. We\'re building what ERCOT should have had. The entire clean energy transition runs through understanding the grid.',
+  dbLinks: [
+    { name: 'EIA-930 Real-Time Grid Data', url: 'https://www.eia.gov/opendata/v1/electricity/rto/region-data/', color: '#f97316' },
+    { name: 'FERC OASIS Transmission', url: 'https://www.ferc.gov/industries-data/electric/power-sales-and-markets/oasis', color: '#f97316' },
+    { name: 'EPA eGRID Emissions Data', url: 'https://www.epa.gov/egrid/download-data', color: '#f97316' },
+  ],
+  tech: ['Python','PyTorch','LSTM','FastAPI','TimescaleDB','Plotly','React','Celery'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Grid Data Pipeline', tasks: ['EIA-930 streaming data ingestion','FERC OASIS bulk download','EPA eGRID emissions integration','Claude for energy data documentation'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Demand Forecasting', tasks: ['Weather-demand LSTM implementation','Thermal outage risk model','LMP spike prediction calibration','Claude extended thinking for energy ML architecture'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Grid Dashboard', tasks: ['Real-time generation mix visualization','48-hour stress forecast display','Carbon intensity tracking UI','Claude code gen for time-series dashboard'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Energy Research', tasks: ['Texas 2021 crisis analysis','FERC regulatory framework research','Renewable energy market sizing','Claude document analysis on energy policy'] },
+  ]
+},
+
+// ──────────────── WILDCARD ────────────────
+
+{
+  id: 'sportsalpha', name: 'SportsAlpha', cat: 'wildcard', diff: 'extreme',
+  tagline: 'Player biometric + game film + betting market ML stack that generates positive-EV wagers from publicly observable data.',
+  desc: 'Fuses play-by-play data (NFL Next Gen Stats, NBA tracking data), public injury report sentiment analysis, and betting market efficiency signals to identify +EV betting opportunities in US sports betting markets — fully legal, publicly disclosed data only.',
+  dbs: ['NFL Next Gen Stats','NBA Stats API','Pro Football Reference','Sportradar Open'],
+  market: '$225B legal sports betting market',
+  mvp: '5–6 weeks',
+  problem: 'The $225B US sports betting market is dominated by casual bettors making emotionally-driven wagers against sharply-priced lines set by professional market makers. However, line-setting is imperfect for prop bets, player performance markets, and live in-game wagering where high-frequency ML predictions can find inefficiencies that don\'t persist long enough for books to adjust.',
+  whatItDoes: 'SportsAlpha builds player-level performance prediction models using tracking data, situational statistics, and matchup features, then compares predictions against Pinnacle and market-leading sportsbook odds to identify statistical discrepancies (Kelly Criterion +EV opportunities) with edge > vig.',
+  features: [
+    { icon: '🏈', name: 'Player Performance ML Engine', desc: 'XGBoost ensemble for player prop predictions (rushing yards, receiving yards, TD probability) using Next Gen Stats tracking data, weather, O-line vs D-line matchup quality, and snap count trends.' },
+    { icon: '📊', name: 'Odds Comparison + EV Calculator', desc: 'Scrapes Pinnacle, DraftKings, and FanDuel odds for 500+ markets per game — computes expected value for each market given model probability vs implied probability.' },
+    { icon: '🤕', name: 'Injury Report NLP Analyzer', desc: 'Parses official injury designations + practice participation + coach press conference language to model expected availability and performance impact.' },
+    { icon: '🎯', name: 'Kelly Criterion Bankroll Optimizer', desc: 'Optimal fraction betting using fractional Kelly Criterion — prevents ruin risk while maximizing geometric growth rate on identified +EV opportunities.' },
+    { icon: '📈', name: 'Line Movement Tracker', desc: 'Monitors line movement velocity from open to close — sharp money signals (sudden large moves on low volume) identify where professional bettors are acting.' },
+    { icon: '🔄', name: 'Live In-Game Model', desc: 'Real-time in-game model updates as drives progress, quarters elapse, and score changes — in-game markets are less efficient because books rely on algorithmic pricing during fast-moving events.' },
+  ],
+  crazy: [
+    'Prediction market integration: Kalshi and PredictIt now allow legal prediction market wagering on sports outcomes. The same ML model that prices sports bets can price prediction market contracts — arbitrage opportunities exist between the two markets.',
+    'Daily fantasy optimal lineup: DraftKings and FanDuel GPP tournament optimal lineup construction using correlation-aware portfolio optimization (ownership-weighted EV) — different from single-game wagering but same data.',
+    'International expansion: Premier League, Champions League, and cricket have massive betting markets in Europe, Australia, and Asia where data is publicly available but ML modeling is far less sophisticated than US sports.',
+    'Model-as-a-service: sell model predictions via API to semi-professional bettors and syndicates — recurring subscription model at $299-999/month rather than betting model profitability.',
+  ],
+  wow: 'The NFL publishes Next Gen Stats tracking data with player position sampled 10 times per second for every play. The NBA tracks every player and the ball at 25 frames per second for every game. DraftKings and FanDuel post 10,000+ prop markets per NFL Sunday. The gap between what the market prices and what a properly-trained ML model predicts is the most literal definition of alpha that exists in publicly-available data.',
+  dbLinks: [
+    { name: 'NFL Next Gen Stats API', url: 'https://nextgenstats.nfl.com/stats/top-plays', color: '#f59e0b' },
+    { name: 'NBA Stats API', url: 'https://www.nba.com/stats/', color: '#f59e0b' },
+    { name: 'Pro Football Reference', url: 'https://www.pro-football-reference.com/play-index/', color: '#f59e0b' },
+  ],
+  tech: ['Python','XGBoost','scikit-learn','Scrapy','FastAPI','PostgreSQL','React','Plotly'],
+  roles: [
+    { member: 'Aryan', color: '#6366f1', initials: 'A', title: 'Sports Data Pipeline', tasks: ['NFL/NBA tracking data ingestion','Odds data scraper (Pinnacle API)','Historical game data normalization','Claude for sports data schema design'] },
+    { member: 'Jericho', color: '#10b981', initials: 'J', title: 'Performance Models', tasks: ['Player prop XGBoost models','Line movement analysis','Kelly Criterion optimizer','Claude extended thinking for betting model architecture'] },
+    { member: 'Trenton', color: '#f59e0b', initials: 'T', title: 'Bet Tracker UI', tasks: ['EV opportunity dashboard','Bankroll tracking interface','Line movement visualization','Claude code gen for real-time sports dashboard'] },
+    { member: 'Luke', color: '#3b82f6', initials: 'L', title: 'Research & Legal', tasks: ['Legal sports betting jurisdiction research','Sharp vs recreational bettor literature','Market efficiency academic review','Claude for sports analytics research summaries'] },
+  ]
+},
+
+]; // end PROJECTS array
+
+// =====================================================================
+//  SESSION / LOGIN
+// =====================================================================
+const PASS_B64 = 'QWxwaGEyMDI2';
+
+// create particles
+function createParticles() {
+  const gate = document.getElementById('loginGate');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.cssText = `
+      left: ${Math.random()*100}%;
+      width: ${1+Math.random()*3}px;
+      height: ${1+Math.random()*3}px;
+      animation-duration: ${6+Math.random()*12}s;
+      animation-delay: ${-Math.random()*10}s;
+      opacity: ${0.3+Math.random()*0.7};
+    `;
+    gate.appendChild(p);
+  }
+}
+createParticles();
+
+// check session
+if (sessionStorage.getItem('da_auth') === PASS_B64) {
+  document.getElementById('loginGate').style.display = 'none';
+  showApp();
+}
+
+// eye toggle
+document.getElementById('eyeBtn').addEventListener('click', () => {
+  const inp = document.getElementById('pwInput');
+  const open = document.getElementById('eyeOpen');
+  const closed = document.getElementById('eyeClosed');
+  if (inp.type === 'password') {
+    inp.type = 'text'; open.style.display = 'none'; closed.style.display = '';
+  } else {
+    inp.type = 'password'; open.style.display = ''; closed.style.display = 'none';
+  }
+});
+
+function tryLogin() {
+  const val = document.getElementById('pwInput').value;
+  const encoded = btoa(val);
+  if (encoded === PASS_B64) {
+    sessionStorage.setItem('da_auth', PASS_B64);
+    const gate = document.getElementById('loginGate');
+    gate.classList.add('fade-out');
+    setTimeout(showApp, 800);
+  } else {
+    const card = document.getElementById('loginCard');
+    const err = document.getElementById('loginError');
+    card.classList.remove('card-shake');
+    void card.offsetWidth; // reflow
+    card.classList.add('card-shake');
+    err.classList.add('show');
+  }
+}
+
+document.getElementById('loginBtn').addEventListener('click', tryLogin);
+document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+function showApp() {
+  document.getElementById('loginGate').style.display = 'none';
+  const app = document.getElementById('mainApp');
+  app.style.display = 'block';
+  requestAnimationFrame(() => app.classList.add('visible'));
+  renderCards();
+}
+
+// =====================================================================
+//  CARD RENDERING
+// =====================================================================
+const CAT_COLORS = {
+  health: '#ef4444', finance: '#10b981', climate: '#3b82f6',
+  legal: '#8b5cf6', infra: '#f97316', wildcard: '#f59e0b'
+};
+const CAT_LABELS = {
+  health: '🧬 Health', finance: '💰 Finance', climate: '🌍 Climate',
+  legal: '⚖️ Legal', infra: '🏗️ Infra', wildcard: '🃏 Wild Card'
+};
+const DIFF_CLASS = { Easy: 'easy', Medium: 'medium', Hard: 'hard', Extreme: 'extreme' };
+
+let activeFilter = 'all';
+let searchTerm = '';
+
+function renderCards() {
+  const grid = document.getElementById('projectGrid');
+  const noRes = document.getElementById('noResults');
+  // clear old cards
+  Array.from(grid.querySelectorAll('.project-card')).forEach(c => c.remove());
+
+  let visible = 0;
+  PROJECTS.forEach((p, i) => {
+    const card = buildCard(p, i);
+    const catMatch = activeFilter === 'all' || p.cat === activeFilter;
+    const q = searchTerm.toLowerCase();
+    const searchMatch = !q || p.name.toLowerCase().includes(q) || p.tagline.toLowerCase().includes(q)
+      || p.desc.toLowerCase().includes(q) || p.dbs.join(' ').toLowerCase().includes(q)
+      || p.cat.toLowerCase().includes(q);
+    if (!catMatch || !searchMatch) {
+      card.classList.add('hidden');
+    } else {
+      visible++;
+    }
+    card.style.animationDelay = `${(visible-1)*0.05}s`;
+    grid.insertBefore(card, noRes);
+  });
+  noRes.style.display = visible === 0 ? 'block' : 'none';
+}
+
+function buildCard(p, i) {
+  const color = CAT_COLORS[p.cat];
+  const diff = p.diff.charAt(0).toUpperCase() + p.diff.slice(1);
+  const card = document.createElement('div');
+  card.className = 'project-card';
+  card.innerHTML = `
+    <div class="card-top-border" style="background:${color}"></div>
+    <div class="card-body">
+      <div class="card-header">
+        <div>
+          <div class="card-name">${p.name}</div>
+          <div class="badges">
+            <span class="badge badge-cat" style="background:${color}">${CAT_LABELS[p.cat]}</span>
+            <span class="badge badge-diff ${DIFF_CLASS[diff]}">${diff}</span>
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
+      <div class="card-tagline">${p.tagline}</div>
+      <div class="card-desc">${p.desc.slice(0, 160)}${p.desc.length > 160 ? '...' : ''}</div>
+      <div class="db-chips">${p.dbs.map(d => `<span class="db-chip">${d}</span>`).join('')}</div>
+      <div class="card-footer">
+        <div>
+          <div class="market-size">${p.market}</div>
+          <div class="time-to-mvp">MVP: ${p.mvp}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  card.addEventListener('click', () => openModal(p));
+  return card;
+}
+
+// =====================================================================
+//  FILTER + SEARCH
+// =====================================================================
+document.querySelectorAll('.filter-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    activeFilter = pill.dataset.cat;
+    document.querySelectorAll('.filter-pill').forEach(p => {
+      p.className = 'filter-pill';
+    });
+    pill.classList.add(`active-${activeFilter}`);
+    renderCards();
+  });
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchTerm = e.target.value;
+  renderCards();
+});
+
+// =====================================================================
+//  MODAL
+// =====================================================================
+function openModal(p) {
+  const color = CAT_COLORS[p.cat];
+  const diff = p.diff.charAt(0).toUpperCase() + p.diff.slice(1);
+  const mc = document.getElementById('modalContent');
+
+  const featuresHTML = p.features.map(f => `
+    <div class="feature-item">
+      <div class="feature-icon">${f.icon}</div>
+      <div>
+        <div class="feature-name">${f.name}</div>
+        <div class="feature-desc">${f.desc || ''}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const crazyHTML = p.crazy.map(c => `<li>${c}</li>`).join('');
+
+  const dbLinksHTML = p.dbLinks.map(d => `
+    <a class="db-link" href="${d.url}" target="_blank" rel="noopener">
+      <span class="db-link-dot" style="background:${d.color}"></span>
+      ${d.name} ↗
+    </a>
+  `).join('');
+
+  const techHTML = p.tech.map(t => `<span class="tech-badge">${t}</span>`).join('');
+
+  const rolesHTML = p.roles.map(r => `
+    <div class="team-role-card">
+      <div class="team-role-header">
+        <div class="avatar" style="background:linear-gradient(135deg,${r.color},${r.color}cc);width:32px;height:32px;font-size:0.8rem">${r.initials}</div>
+        <div>
+          <div class="team-role-name">${r.member}</div>
+          <div class="team-role-title">${r.title}</div>
+        </div>
+      </div>
+      <ul class="team-role-tasks">${r.tasks.map(t => `<li>${t}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+
+  mc.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-cat-bar">
+        <span class="badge badge-cat" style="background:${color}">${CAT_LABELS[p.cat]}</span>
+        <span class="badge badge-diff ${DIFF_CLASS[diff]}">${diff}</span>
+      </div>
+      <h2 class="modal-title">${p.name}</h2>
+      <p class="modal-tagline">${p.tagline}</p>
+    </div>
+
+    <div class="modal-stats">
+      <div class="mstat"><div class="mstat-val" style="color:${color}">${p.market.split(' ')[0]}</div><div class="mstat-key">Market Size</div></div>
+      <div class="mstat"><div class="mstat-val">${p.mvp}</div><div class="mstat-key">Time to MVP</div></div>
+      <div class="mstat"><div class="mstat-val">${p.dbs.length}</div><div class="mstat-key">Data Sources</div></div>
+      <div class="mstat"><div class="mstat-val">${p.tech.length}</div><div class="mstat-key">Tech Stack Items</div></div>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="modal-section">
+        <div class="section-title">The Problem</div>
+        <p class="section-text">${p.problem}</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-title">What It Does</div>
+        <p class="section-text">${p.whatItDoes}</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-title">Core Features</div>
+        <div class="features-grid">${featuresHTML}</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-title">🚀 Crazy Scale Features</div>
+        <ul class="crazy-features">${crazyHTML}</ul>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-title">Wow Factor</div>
+        <div class="wow-box">${p.wow}</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-title">Data Sources</div>
+        <div class="db-links">${dbLinksHTML}</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-title">Tech Stack</div>
+        <div class="tech-stack">${techHTML}</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="section-title">👥 Team Roles — How to Build This Together</div>
+        <div class="team-roles-grid">${rolesHTML}</div>
+      </div>
+
+    </div>
+  `;
+
+  const overlay = document.getElementById('modalOverlay');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modalBox').scrollTop = 0;
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  box.style.transform = 'translateY(100%)';
+  setTimeout(() => {
+    overlay.classList.remove('open');
+    box.style.transform = '';
+    document.body.style.overflow = '';
+  }, 350);
+}
+
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+</script>
+</body>
+</html>

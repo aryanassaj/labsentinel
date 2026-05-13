@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "trained_at": "2026-04-11T04:49:33.486501",
+  "target": "any_cancer",
+  "n_samples": 53448,
+  "n_features": 86,
+  "cv_auc_roc": 0.8101553749708286,
+  "cv_auc_pr": 0.31877267220408634,
+  "tuned": false
+}
