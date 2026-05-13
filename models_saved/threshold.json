@@ -1,6 +1,8 @@
 {
-  "threshold": 0.106,
-  "sensitivity": 0.8322,
-  "specificity": 0.6692,
-  "target": "any_cancer"
+  "threshold": 0.3305,
+  "sensitivity": 0.8392,
+  "specificity": 0.653,
+  "target": "any_cancer",
+  "auc_roc": 0.8096,
+  "auc_pr": 0.3183
 }

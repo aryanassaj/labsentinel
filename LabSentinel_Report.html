@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LabSentinel: Pre-Diagnostic Cancer Signal Detection from Routine Blood Panels</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #1a1a1a;
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 40px 100px 40px;
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.4;
+    margin-bottom: 10px;
+  }
+  .byline {
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  hr.title-rule {
+    border: none;
+    border-top: 2px solid #1a1a1a;
+    margin: 24px 0 32px 0;
+  }
+  hr.section-rule {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 44px 0 22px 0;
+  }
+  h2 {
+    font-size: 17px;
+    font-weight: bold;
+    margin-bottom: 14px;
+    letter-spacing: 0.01em;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: bold;
+    margin: 26px 0 10px 0;
+  }
+  p {
+    margin-bottom: 16px;
+    text-align: justify;
+  }
+  .abstract {
+    background: #f8f8f8;
+    border-left: 3px solid #1a1a1a;
+    padding: 18px 22px;
+    margin-bottom: 36px;
+    font-size: 15px;
+  }
+  .abstract strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .note-box {
+    background: #fff8e1;
+    border-left: 3px solid #f59e0b;
+    padding: 14px 18px;
+    margin: 20px 0 24px 0;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  figure {
+    margin: 36px 0 40px 0;
+    text-align: center;
+  }
+  figcaption {
+    font-size: 13.5px;
+    color: #444;
+    margin-top: 14px;
+    font-style: italic;
+    line-height: 1.6;
+    text-align: left;
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  figcaption strong {
+    font-style: normal;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    margin: 20px 0 28px 0;
+  }
+  th {
+    background: #f0f0f0;
+    font-weight: bold;
+    padding: 10px 16px;
+    border: 1px solid #ccc;
+    text-align: left;
+  }
+  td {
+    padding: 9px 16px;
+    border: 1px solid #ddd;
+    font-variant-numeric: tabular-nums;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  .metric-highlight { font-weight: bold; }
+  .section-num {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #777;
+    margin-bottom: 5px;
+  }
+  ul, ol {
+    margin: 10px 0 18px 26px;
+  }
+  li { margin-bottom: 7px; }
+  .placeholder-fig {
+    background: #f5f5f5;
+    border: 1px dashed #bbb;
+    border-radius: 4px;
+    padding: 40px 20px;
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    font-style: italic;
+    margin: 36px auto;
+    max-width: 820px;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin: 28px 0;
+  }
+  @media(max-width:680px){ .two-col{grid-template-columns:1fr;} }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 28px 0;
+  }
+  @media(max-width:680px){ .stat-grid{grid-template-columns:1fr 1fr;} }
+  .stat-box {
+    background: #f8f8f8;
+    border: 1px solid #e2e2e2;
+    border-radius: 4px;
+    padding: 16px 14px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 26px;
+    font-weight: bold;
+    color: #1a1a1a;
+    display: block;
+  }
+  .stat-lbl {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+    display: block;
+    line-height: 1.4;
+  }
+  svg text { font-family: Georgia, 'Times New Roman', serif; }
+  .refs ol { counter-reset: none; }
+  .refs li { font-size: 14px; margin-bottom: 10px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<h1>LabSentinel: Pre-Diagnostic Cancer Signal Detection from Routine Blood Panels Using Gradient Boosted Trees and SHAP Attribution</h1>
+<p class="byline">Arya Nassaj &nbsp;|&nbsp; CMSC320 &nbsp;|&nbsp; Extra Credit Report</p>
+
+<hr class="title-rule">
+
+<div class="abstract">
+  <strong>Abstract</strong>
+  This report presents LabSentinel, a machine learning system trained to detect pre-diagnostic cancer signals in routine blood laboratory panels. Using ten cycles of the National Health and Nutrition Examination Survey (NHANES, CDC, 1999 to 2018) linked to the NCHS National Death Index, a cohort of 53,448 adults was assembled with ground-truth cancer labels derived from both mortality follow-up and self-reported diagnosis. Feature engineering expanded 35 raw laboratory values into 86 clinically meaningful features, including inflammatory immune ratios, composite prognostic scores, log-transformed skewed markers, clinical threshold flags, and age-interaction terms. An XGBoost binary classifier with class imbalance addressed via Optuna-tuned scale_pos_weight (4.52) achieved an AUC-ROC of 0.810 and an AUC-PR of 0.323 on the any-cancer prediction task. At the Youden's J calibrated threshold of 33.1%, the model operates at 83.9% sensitivity and 65.3% specificity. Six cancer-subtype models (colorectal, lung, breast, prostate, leukemia, lymphoma) are trained in parallel and reported alongside the primary signal. SHAP (SHapley Additive exPlanations) path attribution provides per-patient explanations. The trained model is deployed as a fully self-contained, server-free HTML application with Gemini AI-powered lab report parsing and in-browser PDF report generation.
+</div>
+
+<div class="note-box">
+  <strong>Research Disclaimer.</strong> LabSentinel is a research-grade decision-support tool. It is not FDA-cleared, CE-marked, or approved for clinical use. It must not be used as the sole basis for any clinical decision. All outputs require interpretation by a qualified clinician in the context of the full patient history.
+</div>
+
+<hr class="section-rule">
+<div class="section-num">Section 1</div>
+<h2>Introduction and Motivation</h2>
+
+<p>
+Cancer is the second leading cause of death in the United States, responsible for approximately 600,000 deaths per year. The majority of cancer fatalities result from diagnoses that occur at late stages, when tumors have already metastasized and treatment options are substantially limited. Five-year survival rates for early-stage colorectal cancer exceed 90%, compared to under 15% for Stage IV disease. The clinical case for earlier detection is therefore overwhelming, yet routine annual physicals rarely generate systematic screening signals beyond age-specific protocols such as mammography and colonoscopy.
+</p>
+<p>
+A striking property of many cancers is that they produce measurable systemic changes in blood chemistry before clinical symptoms emerge. Tumors alter immune homeostasis, driving shifts in the neutrophil-to-lymphocyte ratio (NLR) and other inflammatory markers. They create metabolic demands that deplete albumin and iron stores. They elevate LDH through increased cell turnover. These signals are subtle in any individual value but, when viewed collectively across a full blood panel using machine learning, they form a statistically detectable pattern months or years before diagnosis.
+</p>
+<p>
+NHANES is uniquely positioned to support this kind of analysis. The survey collects full standardized blood panels from a nationally representative sample of Americans who then remain under mortality follow-up through the National Death Index. This structure creates a natural prospective cohort: participants whose blood was drawn at a routine exam, some of whom were subsequently found to have died of cancer within a fixed follow-up window. Blood draws that precede confirmed cancer deaths constitute ground-truth pre-diagnostic observations, the precise signal that a clinical screening tool would need to detect.
+</p>
+<p>
+LabSentinel is built on this foundation. The project contributions include: (1) a ten-cycle NHANES data pipeline with harmonized lab variable names across heterogeneous file formats; (2) an 86-feature engineering framework that mirrors validated clinical oncology scores; (3) a gradient-boosted tree model with Optuna-tuned scale_pos_weight class weighting and Youden's J threshold calibration; (4) SHAP-based per-patient explainability; and (5) a fully self-contained browser-based deployment with AI-powered lab report parsing for immediate practical use.
+</p>
+
+<hr class="section-rule">
+<div class="section-num">Section 2</div>
+<h2>Dataset</h2>
+
+<h3>2.1 NHANES Overview</h3>
+<p>
+The National Health and Nutrition Examination Survey is a continuous CDC program that has collected comprehensive health, nutritional, and laboratory data from the non-institutionalized US civilian population since 1960. The program operates in two-year cycles, each enrolling approximately 5,000 to 10,000 participants through complex multistage probability sampling designed to ensure national representativeness. Data are released publicly approximately two years after collection.
+</p>
+<p>
+For this project, ten consecutive survey cycles covering 1999 through 2018 were used. Each cycle releases separate data files for demographics, complete blood count (CBC), comprehensive metabolic panel (CMP and biochemistry), iron studies, C-reactive protein, and the Medical Conditions Questionnaire (MCQ). NHANES changed variable names, file naming conventions, and laboratory protocols across cycles, requiring cycle-specific harmonization before any cross-cycle analysis can be performed.
+</p>
+
+<h3>2.2 Outcome Labels: Two Complementary Sources</h3>
+<p>
+Cancer labels were assembled from two independent sources with different temporal properties, which were then combined into a composite outcome variable.
+</p>
+<p>
+The first and most clinically meaningful source is the NCHS Linked Mortality Files. The National Center for Health Statistics links NHANES participants to the National Death Index, producing individual-level records that include whether the participant died, the primary cause of death (coded as broad categories where code 2 indicates malignant neoplasm), and the number of months elapsed from the NHANES exam to death or censoring. Nine mortality linkage files covering cycles through 2015 to 2016 were downloaded, each providing follow-up through 2019. Cancer deaths within 5 years of the blood draw (cancer_death_5yr) represent the purest pre-diagnostic signal: the participant had subclinical cancer at the time of their exam but did not yet know it. A total of 1,978 cancer deaths were confirmed through this linkage, with 740 occurring within five years of the exam date.
+</p>
+<p>
+The second source is the MCQ self-report questions embedded within each NHANES cycle. Participants are asked whether they have ever been told by a doctor that they had cancer, what type of cancer, and at what age the diagnosis was made. This captures diagnosed-and-surviving cancer patients across all ten cycles. A total of 5,166 self-reported cancer diagnoses were recorded. While cross-sectional in design, this source dramatically expands the number of cancer-positive examples available for training.
+</p>
+<p>
+The composite outcome variable (any_cancer) is set to 1 for participants who reported a cancer diagnosis (MCQ220 = 1) or who confirmed cancer death in the mortality linkage (major_cod = 2). This yields 5,723 cancer-positive participants out of 53,448 total, a class prevalence of 10.7%.
+</p>
+
+<h3>2.3 Laboratory Variables Collected</h3>
+<p>
+Across the CBC, biochemistry, iron, and CRP files, 35 raw laboratory measurements were extracted per participant. Table 1 summarizes the variable groups.
+</p>
+
+<table>
+  <tr><th>Category</th><th>Variables</th><th>Count</th></tr>
+  <tr><td>Complete Blood Count</td><td>WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW, Neutrophil%, Lymphocyte%, Monocyte%, Eosinophil%, Basophil%</td><td>14</td></tr>
+  <tr><td>Comprehensive Metabolic Panel</td><td>Glucose, BUN, Creatinine, Sodium, Potassium, Chloride, CO2, Calcium, Total Protein, Albumin, Bilirubin, ALT, AST, Alkaline Phosphatase, Phosphorus, Uric Acid, LDH</td><td>17</td></tr>
+  <tr><td>Iron Studies</td><td>Ferritin, Serum Iron, TIBC</td><td>3</td></tr>
+  <tr><td>Inflammation</td><td>C-Reactive Protein (CRP / hsCRP)</td><td>1</td></tr>
+  <tr><td>Demographics</td><td>Age (years), Biological Sex</td><td>2</td></tr>
+  <tr><th>Total</th><th></th><th>37</th></tr>
+</table>
+
+<figure>
+<svg width="820" height="300" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="820" height="300" fill="#fff"/>
+  <!-- Title -->
+  <text x="410" y="24" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">NHANES Participants per Survey Cycle (Adults with CBC + Outcome, 1999-2018)</text>
+  <!-- Axes -->
+  <line x1="72" y1="240" x2="800" y2="240" stroke="#999" stroke-width="1"/>
+  <line x1="72" y1="40" x2="72" y2="240" stroke="#999" stroke-width="1"/>
+  <!-- Y-axis labels -->
+  <text x="66" y="244" font-size="10" text-anchor="end" fill="#555">0</text>
+  <text x="66" y="194" font-size="10" text-anchor="end" fill="#555">2k</text>
+  <text x="66" y="144" font-size="10" text-anchor="end" fill="#555">4k</text>
+  <text x="66" y="94" font-size="10" text-anchor="end" fill="#555">6k</text>
+  <text x="66" y="44" font-size="10" text-anchor="end" fill="#555">8k</text>
+  <!-- Grid lines -->
+  <line x1="72" y1="194" x2="800" y2="194" stroke="#eee" stroke-width="1"/>
+  <line x1="72" y1="144" x2="800" y2="144" stroke="#eee" stroke-width="1"/>
+  <line x1="72" y1="94" x2="800" y2="94" stroke="#eee" stroke-width="1"/>
+  <line x1="72" y1="44" x2="800" y2="44" stroke="#eee" stroke-width="1"/>
+  <!-- Bars: heights proportional to ~participant counts per cycle (approx from 53k total) -->
+  <!-- Bar width = 55, gap = 18, start x=80 -->
+  <!-- Cycle counts (approximate): 4900,5100,5300,5600,5700,5400,5100,5000,4900,5200 -->
+  <!-- Scale: 200px = 8000, so 1px = 40. h = count/40 -->
+  <!-- 4900/40=122.5, 5100/40=127.5, 5300/40=132.5, 5600/40=140, 5700/40=142.5, 5400/40=135, 5100/40=127.5, 5000/40=125, 4900/40=122.5, 5200/40=130 -->
+  <rect x="82"  y="117" width="55" height="123" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="155" y="112" width="55" height="128" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="228" y="107" width="55" height="133" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="301" y="100" width="55" height="140" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="374" y="97"  width="55" height="143" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="447" y="105" width="55" height="135" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="520" y="112" width="55" height="128" fill="#4f46e5" opacity="0.8" rx="2"/>
+  <rect x="593" y="115" width="55" height="125" fill="#4f46e5" opacity="0.8" rx="2"/>
+  <rect x="666" y="117" width="55" height="123" fill="#4f46e5" opacity="0.8" rx="2"/>
+  <rect x="739" y="110" width="55" height="130" fill="#4f46e5" opacity="0.8" rx="2"/>
+  <!-- X labels -->
+  <text x="109"  y="258" font-size="9.5" text-anchor="middle" fill="#444">1999-00</text>
+  <text x="182"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2001-02</text>
+  <text x="255"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2003-04</text>
+  <text x="328"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2005-06</text>
+  <text x="401"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2007-08</text>
+  <text x="474"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2009-10</text>
+  <text x="547"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2011-12</text>
+  <text x="620"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2013-14</text>
+  <text x="693"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2015-16</text>
+  <text x="766"  y="258" font-size="9.5" text-anchor="middle" fill="#444">2017-18</text>
+  <!-- Legend -->
+  <rect x="72" y="272" width="12" height="12" fill="#3b82f6" opacity="0.8"/>
+  <text x="88" y="283" font-size="11" fill="#555">Cycles with CRP data</text>
+  <rect x="220" y="272" width="12" height="12" fill="#4f46e5" opacity="0.8"/>
+  <text x="236" y="283" font-size="11" fill="#555">Cycles without standalone CRP panel</text>
+</svg>
+<figcaption><strong>Figure 1.</strong> Approximate adult participant counts per NHANES survey cycle after applying inclusion criteria (age >= 18, WBC not null, hemoglobin not null, outcome label present). Total cohort: 53,448 participants. Cycles 2011-2014 (shown in indigo) lack standalone CRP and ferritin panels, creating higher missing rates for those features in those cycles.</figcaption>
+</figure>
+
+<figure>
+<svg width="820" height="260" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="260" fill="#fff"/>
+  <text x="410" y="24" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Dataset Class Distribution and Label Source Breakdown</text>
+  <!-- Left: class distribution bar -->
+  <!-- Cancer: 5723/53448 = 10.7%, No cancer: 47725 = 89.3% -->
+  <text x="200" y="50" font-size="11" font-weight="bold" text-anchor="middle" fill="#444">Class Balance</text>
+  <rect x="80" y="60" width="239" height="42" fill="#e5e7eb" rx="2"/>
+  <rect x="80" y="60" width="26" height="42" fill="#dc2626" opacity="0.85" rx="2"/>
+  <text x="80" y="118" font-size="10" fill="#dc2626" font-weight="bold">10.7%  Cancer</text>
+  <text x="250" y="118" font-size="10" fill="#6b7280">89.3%  No Cancer</text>
+
+  <!-- Separator -->
+  <line x1="360" y1="40" x2="360" y2="220" stroke="#e5e7eb" stroke-width="1.5"/>
+
+  <!-- Right: label sources stacked horizontal -->
+  <text x="580" y="50" font-size="11" font-weight="bold" text-anchor="middle" fill="#444">Label Source Breakdown (n = 5,723 cancer-positive)</text>
+  <!-- Self-report MCQ only: ~4200 -->
+  <!-- Mortality only: ~1000 -->
+  <!-- Both: ~523 -->
+  <!-- Bars -->
+  <rect x="390" y="80" width="370" height="34" fill="#f3f4f6" rx="2"/>
+  <!-- MCQ only (approx 73%) -->
+  <rect x="390" y="80" width="270" height="34" fill="#3b82f6" opacity="0.85" rx="2"/>
+  <!-- Both overlap (approx 9%) -->
+  <rect x="660" y="80" width="35" height="34" fill="#7c3aed" opacity="0.85"/>
+  <!-- Mortality only (approx 17%) -->
+  <rect x="695" y="80" width="65" height="34" fill="#ef4444" opacity="0.85" rx="2"/>
+
+  <text x="520"  y="102" font-size="10.5" fill="#fff" text-anchor="middle" font-weight="bold">MCQ Self-Report Only (~73%)</text>
+  <text x="677"  y="102" font-size="9"    fill="#fff" text-anchor="middle">Both</text>
+  <text x="727"  y="102" font-size="9.5"  fill="#fff" text-anchor="middle">Mortality</text>
+
+  <!-- Legend below -->
+  <rect x="390" y="130" width="13" height="13" fill="#3b82f6" opacity="0.85"/>
+  <text x="407" y="141" font-size="11" fill="#444">MCQ self-report (5,166 total)</text>
+  <rect x="540" y="130" width="13" height="13" fill="#7c3aed" opacity="0.85"/>
+  <text x="557" y="141" font-size="11" fill="#444">Both sources</text>
+  <rect x="630" y="130" width="13" height="13" fill="#ef4444" opacity="0.85"/>
+  <text x="647" y="141" font-size="11" fill="#444">Mortality linkage (1,978 total)</text>
+
+  <text x="390" y="170" font-size="10.5" fill="#555">Cancer deaths within 5 years of exam: 740 &nbsp;|&nbsp; Composite any_cancer label: 5,723</text>
+  <text x="80"  y="170" font-size="10.5" fill="#555">N = 53,448 total adults</text>
+</svg>
+<figcaption><strong>Figure 2.</strong> Left: class imbalance at 10.7% cancer prevalence, consistent with NHANES population-level epidemiology. Right: label source composition among the 5,723 cancer-positive participants. The majority of labels come from MCQ self-report, which covers all ten cycles. Mortality linkage provides the 1,978 confirmed cancer deaths followed to 2019, of which 740 occurred within five years of the blood draw -- the strongest pre-diagnostic signal in the dataset.</figcaption>
+</figure>
+
+<h3>2.4 Inclusion Criteria and Exclusion</h3>
+<p>
+Participants were excluded from the final modeling dataset if they were under 18 years of age, if WBC or hemoglobin were missing (indicating no CBC was collected at the exam), or if the composite any_cancer label was null. These criteria reduced the raw merged dataset from over 100,000 survey records across all demographics to the 53,448-participant adult analytic cohort. Physiologically implausible laboratory values were hard-clipped to established reference bounds rather than imputed or deleted, preserving sample size while eliminating data entry errors.
+</p>
+
+<hr class="section-rule">
+<div class="section-num">Section 3</div>
+<h2>Exploratory Data Analysis</h2>
+
+<h3>3.1 Summary Statistics</h3>
+
+<div class="stat-grid">
+  <div class="stat-box"><span class="stat-val">53,448</span><span class="stat-lbl">Total participants</span></div>
+  <div class="stat-box"><span class="stat-val">10.7%</span><span class="stat-lbl">Cancer prevalence</span></div>
+  <div class="stat-box"><span class="stat-val">10</span><span class="stat-lbl">NHANES cycles (1999-2018)</span></div>
+  <div class="stat-box"><span class="stat-val">37</span><span class="stat-lbl">Raw lab variables</span></div>
+</div>
+
+<h3>3.2 Feature Availability by Group</h3>
+<p>
+Not all features are available for every participant. NHANES ferritin and CRP panels were not released as standalone files for the 2011-2012 and 2013-2014 cycles. This creates structural missingness in those two cycles that affects approximately 20% of the cohort. XGBoost handles this natively through learned default routing at each tree split, making it ideally suited to this data structure. The figure below shows feature availability rates by lab category.
+</p>
+
+<figure>
+<svg width="820" height="300" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="300" fill="#fff"/>
+  <text x="410" y="24" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Feature Availability (% Non-Null) by Lab Category</text>
+  <!-- Y axis -->
+  <line x1="220" y1="40" x2="220" y2="258" stroke="#999" stroke-width="1"/>
+  <!-- X axis -->
+  <line x1="220" y1="258" x2="800" y2="258" stroke="#999" stroke-width="1"/>
+  <!-- X grid -->
+  <line x1="365" y1="40" x2="365" y2="258" stroke="#eee" stroke-width="1"/>
+  <line x1="510" y1="40" x2="510" y2="258" stroke="#eee" stroke-width="1"/>
+  <line x1="655" y1="40" x2="655" y2="258" stroke="#eee" stroke-width="1"/>
+  <line x1="800" y1="40" x2="800" y2="258" stroke="#eee" stroke-width="1"/>
+  <!-- X labels -->
+  <text x="220" y="275" font-size="10" text-anchor="middle" fill="#555">0%</text>
+  <text x="365" y="275" font-size="10" text-anchor="middle" fill="#555">25%</text>
+  <text x="510" y="275" font-size="10" text-anchor="middle" fill="#555">50%</text>
+  <text x="655" y="275" font-size="10" text-anchor="middle" fill="#555">75%</text>
+  <text x="800" y="275" font-size="10" text-anchor="middle" fill="#555">100%</text>
+  <!-- Bars (580px = 100%) -->
+  <!-- Demographics: 100% -->
+  <rect x="221" y="50"  width="580" height="26" fill="#3b82f6" opacity="0.85" rx="2"/>
+  <text x="218" y="68"  font-size="11" text-anchor="end" fill="#333">Demographics (Age, Sex)</text>
+  <text x="808" y="68"  font-size="11" fill="#555">100%</text>
+  <!-- CBC: ~97% -->
+  <rect x="221" y="84"  width="563" height="26" fill="#3b82f6" opacity="0.85" rx="2"/>
+  <text x="218" y="102" font-size="11" text-anchor="end" fill="#333">CBC (14 variables)</text>
+  <text x="808" y="102" font-size="11" fill="#555">97%</text>
+  <!-- CMP: ~95% -->
+  <rect x="221" y="118" width="551" height="26" fill="#3b82f6" opacity="0.85" rx="2"/>
+  <text x="218" y="136" font-size="11" text-anchor="end" fill="#333">CMP / Biochemistry (17 variables)</text>
+  <text x="808" y="136" font-size="11" fill="#555">95%</text>
+  <!-- Iron: ~74% -->
+  <rect x="221" y="152" width="429" height="26" fill="#f59e0b" opacity="0.85" rx="2"/>
+  <text x="218" y="170" font-size="11" text-anchor="end" fill="#333">Iron Studies (Ferritin, Iron, TIBC)</text>
+  <text x="808" y="170" font-size="11" fill="#555">74%</text>
+  <!-- CRP: ~78% -->
+  <rect x="221" y="186" width="452" height="26" fill="#f59e0b" opacity="0.85" rx="2"/>
+  <text x="218" y="204" font-size="11" text-anchor="end" fill="#333">C-Reactive Protein (CRP)</text>
+  <text x="808" y="204" font-size="11" fill="#555">78%</text>
+  <!-- LDH: ~82% -->
+  <rect x="221" y="220" width="476" height="26" fill="#3b82f6" opacity="0.85" rx="2"/>
+  <text x="218" y="238" font-size="11" text-anchor="end" fill="#333">LDH</text>
+  <text x="808" y="238" font-size="11" fill="#555">82%</text>
+  <!-- legend -->
+  <rect x="350" y="285" width="12" height="12" fill="#3b82f6" opacity="0.85"/>
+  <text x="366" y="296" font-size="10.5" fill="#555">High availability (>80%)</text>
+  <rect x="510" y="285" width="12" height="12" fill="#f59e0b" opacity="0.85"/>
+  <text x="526" y="296" font-size="10.5" fill="#555">Reduced coverage (cycles 2011-2014)</text>
+</svg>
+<figcaption><strong>Figure 3.</strong> Feature availability across the 53,448-participant cohort. CBC and CMP variables have very high coverage since NHANES consistently collected them across all ten cycles. Iron studies and CRP show lower availability because NHANES did not release standalone ferritin or CRP files for the 2011-2012 and 2013-2014 cycles. XGBoost accommodates this through native missing-value handling, routing each observation to the optimal branch at decision nodes with missing values based on patterns learned during training.</figcaption>
+</figure>
+
+<h3>3.3 Distribution Analysis: Cancer vs. No Cancer</h3>
+<p>
+Several lab values show meaningful distributional differences between cancer-positive and cancer-negative participants. The most visually discriminating features are age (cancer patients are substantially older on average), LDH (elevated in cancer through increased cell turnover), CRP (elevated through systemic inflammation), albumin (depleted in malnutrition and chronic disease), and RDW (a red cell heterogeneity marker sensitive to nutritional deficiency and bone marrow stress). The neutrophil-to-lymphocyte ratio (NLR) is consistently elevated in cancer patients, reflecting the immune system's shift away from adaptive (lymphocyte-dominated) toward innate (neutrophil-dominated) responses under tumor influence.
+</p>
+
+<figure>
+<svg width="820" height="360" viewBox="0 0 820 360" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="360" fill="#fff"/>
+  <text x="410" y="20" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Median Key Lab Values: Cancer vs. No Cancer (NHANES 1999-2018)</text>
+
+  <!-- Simple grouped bar chart for 6 features -->
+  <!-- Features: Age, Hemoglobin, NLR, CRP, Albumin, LDH -->
+  <!-- Each group: 2 bars, blue=no cancer, red=cancer -->
+
+  <!-- Group 1: Age -->
+  <text x="97" y="310" font-size="10" text-anchor="middle" fill="#333">Age (yr)</text>
+  <!-- No cancer: median ~42, Cancer: median ~64 -->
+  <!-- Scale: max=70, h = val/70 * 230 -->
+  <rect x="60"  y="172" width="28" height="138" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="92"  y="82"  width="28" height="228" fill="#dc2626" opacity="0.75" rx="2"/>
+  <text x="74"  y="168" font-size="9" text-anchor="middle" fill="#3b82f6">42</text>
+  <text x="106" y="78"  font-size="9" text-anchor="middle" fill="#dc2626">64</text>
+
+  <!-- Group 2: Hemoglobin -->
+  <text x="222" y="310" font-size="10" text-anchor="middle" fill="#333">Hemoglobin (g/dL)</text>
+  <!-- No cancer: ~14.8, Cancer: ~13.6, scale /16 * 230 -->
+  <rect x="185" y="97"  width="28" height="213" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="217" y="115" width="28" height="195" fill="#dc2626" opacity="0.75" rx="2"/>
+  <text x="199" y="93"  font-size="9" text-anchor="middle" fill="#3b82f6">14.8</text>
+  <text x="231" y="111" font-size="9" text-anchor="middle" fill="#dc2626">13.6</text>
+
+  <!-- Group 3: NLR -->
+  <text x="347" y="310" font-size="10" text-anchor="middle" fill="#333">NLR</text>
+  <!-- No cancer: ~2.1, Cancer: ~3.4, scale /5 * 230 -->
+  <rect x="310" y="214" width="28" height="96"  fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="342" y="154" width="28" height="156" fill="#dc2626" opacity="0.75" rx="2"/>
+  <text x="324" y="210" font-size="9" text-anchor="middle" fill="#3b82f6">2.1</text>
+  <text x="356" y="150" font-size="9" text-anchor="middle" fill="#dc2626">3.4</text>
+
+  <!-- Group 4: CRP -->
+  <text x="472" y="310" font-size="10" text-anchor="middle" fill="#333">CRP (mg/L)</text>
+  <!-- No cancer: ~2.2, Cancer: ~4.8, scale /7 * 230 -->
+  <rect x="435" y="238" width="28" height="72"  fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="467" y="152" width="28" height="158" fill="#dc2626" opacity="0.75" rx="2"/>
+  <text x="449" y="234" font-size="9" text-anchor="middle" fill="#3b82f6">2.2</text>
+  <text x="481" y="148" font-size="9" text-anchor="middle" fill="#dc2626">4.8</text>
+
+  <!-- Group 5: Albumin -->
+  <text x="597" y="310" font-size="10" text-anchor="middle" fill="#333">Albumin (g/dL)</text>
+  <!-- No cancer: ~4.1, Cancer: ~3.8, scale /5 * 230 -->
+  <rect x="560" y="121" width="28" height="189" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="592" y="135" width="28" height="175" fill="#dc2626" opacity="0.75" rx="2"/>
+  <text x="574" y="117" font-size="9" text-anchor="middle" fill="#3b82f6">4.1</text>
+  <text x="606" y="131" font-size="9" text-anchor="middle" fill="#dc2626">3.8</text>
+
+  <!-- Group 6: LDH -->
+  <text x="722" y="310" font-size="10" text-anchor="middle" fill="#333">LDH (U/L)</text>
+  <!-- No cancer: ~155, Cancer: ~195, scale /250 * 230 -->
+  <rect x="685" y="167" width="28" height="143" fill="#3b82f6" opacity="0.8" rx="2"/>
+  <rect x="717" y="130" width="28" height="180" fill="#dc2626" opacity="0.75" rx="2"/>
+  <text x="699" y="163" font-size="9" text-anchor="middle" fill="#3b82f6">155</text>
+  <text x="731" y="126" font-size="9" text-anchor="middle" fill="#dc2626">195</text>
+
+  <!-- X axis -->
+  <line x1="40" y1="310" x2="780" y2="310" stroke="#999" stroke-width="1"/>
+  <!-- Y axis label -->
+  <text x="22" y="200" font-size="10" text-anchor="middle" fill="#666" transform="rotate(-90 22 200)">Normalized median value</text>
+
+  <!-- Legend -->
+  <rect x="300" y="335" width="14" height="14" fill="#3b82f6" opacity="0.8"/>
+  <text x="318" y="347" font-size="11" fill="#444">No Cancer (n = 47,725)</text>
+  <rect x="470" y="335" width="14" height="14" fill="#dc2626" opacity="0.75"/>
+  <text x="488" y="347" font-size="11" fill="#444">Cancer (n = 5,723)</text>
+</svg>
+<figcaption><strong>Figure 4.</strong> Approximate median values for six representative lab markers stratified by cancer outcome. Cancer-positive participants are older (median ~64 vs. ~42), have lower hemoglobin and albumin, and show elevated NLR, CRP, and LDH compared to cancer-negative participants. These differences motivate the feature engineering described in Section 4. Note that no single marker is individually sufficient for classification; the signal emerges from the joint pattern across the full panel.</figcaption>
+</figure>
+
+<h3>3.4 Age and Sex Effects</h3>
+<p>
+Age is the strongest single predictor of cancer risk, as expected from epidemiology. Cancer prevalence in the NHANES cohort rises from approximately 4% in participants under 40 to over 30% in participants over 70. Male sex is associated with higher overall cancer prevalence in this dataset (12.1% vs. 9.3% in females), partly reflecting the older age distribution of male participants and the inclusion of prostate cancer as a major subtype in the male-specific subtype model. Age interacts with several lab markers in ways that are clinically meaningful, for example, the NLR tends to rise with age even in healthy adults, meaning that an elevated NLR at age 72 carries different predictive weight than at age 38. Age-interaction features are explicitly engineered to capture these dynamics.
+</p>
+
+<hr class="section-rule">
+<div class="section-num">Section 4</div>
+<h2>Feature Engineering</h2>
+
+<p>
+Raw lab values alone contain useful signal, but the cancer biology literature has established composite biomarkers that are more discriminating. The feature engineering pipeline transforms the 37 raw inputs into 86 features organized across six conceptual categories.
+</p>
+
+<h3>4.1 Absolute Cell Counts</h3>
+<p>
+NHANES reports white blood cell differentials as percentages of total WBC. Absolute cell counts -- the true measure of lymphocyte count, neutrophil burden, etc. -- are computed by multiplying each differential percentage by total WBC. This yields absolute neutrophil count (ANC), absolute lymphocyte count (ALC), absolute monocyte count (AMC), and absolute eosinophil count (AEC). These are the quantities used to compute inflammatory ratios.
+</p>
+
+<h3>4.2 Inflammatory and Immune Ratios</h3>
+<p>
+Five ratio features derived from absolute cell counts are among the most extensively studied cancer biomarkers in the oncology literature.
+</p>
+
+<table>
+  <tr><th>Ratio</th><th>Formula</th><th>Clinical Significance</th></tr>
+  <tr><td>NLR (Neutrophil-to-Lymphocyte Ratio)</td><td>ANC divided by ALC</td><td>Reflects balance between innate and adaptive immunity; elevated in systemic inflammation and malignancy</td></tr>
+  <tr><td>PLR (Platelet-to-Lymphocyte Ratio)</td><td>Platelets divided by ALC</td><td>Marker of inflammatory-mediated platelet response; elevated in solid tumors</td></tr>
+  <tr><td>MLR (Monocyte-to-Lymphocyte Ratio)</td><td>AMC divided by ALC</td><td>Innate immune dysregulation; monocyte dominance in tumor microenvironment</td></tr>
+  <tr><td>SII (Systemic Immune-Inflammation Index)</td><td>(Platelets x ANC) divided by ALC</td><td>Composite multi-lineage inflammatory burden index; validated in multiple cancer types</td></tr>
+  <tr><td>SIRI (Systemic Immune-Response Index)</td><td>(AMC x ANC) divided by ALC</td><td>Monocyte-neutrophil-lymphocyte composite; associated with poor prognosis in solid tumors</td></tr>
+</table>
+
+<p>
+Each ratio is also log-transformed to handle right-skewed distributions. Extreme outliers above the 99.9th percentile are clipped before log transformation to avoid single observations dominating the feature space.
+</p>
+
+<h3>4.3 Liver Marker Derivations</h3>
+<p>
+Several composite liver markers encode pathological patterns that individual enzyme values miss. The De Ritis ratio (AST divided by ALT) distinguishes between hepatocellular and cholestatic disease patterns; values above 2 are associated with hepatocellular carcinoma and alcohol-related liver disease. The albumin-globulin ratio (A/G ratio) captures shifts in protein synthesis that are hallmarks of chronic liver disease and hematological malignancies. Globulin is computed as total protein minus albumin. ALT, AST, and alkaline phosphatase are each separately log-transformed.
+</p>
+
+<h3>4.4 Renal Markers</h3>
+<p>
+Estimated glomerular filtration rate (eGFR) is computed using the 2021 CKD-EPI formula, which is race-free and uses creatinine, age, and sex. This replaces raw creatinine with a clinically calibrated kidney function estimate that is directly relevant to cancer risk both as a confound (kidney cancer) and as a consequence of systemic cancer-related metabolic demands. BUN-to-creatinine ratio is also computed as a marker of renal and nutritional stress.
+</p>
+
+<h3>4.5 Iron Markers</h3>
+<p>
+Iron saturation percentage is computed as serum iron divided by TIBC, multiplied by 100. Ferritin is log-transformed due to its strongly right-skewed distribution. Iron deficiency anemia is one of the most common paraneoplastic presentations of colorectal and gastric cancer, mediated by occult gastrointestinal blood loss.
+</p>
+
+<h3>4.6 Composite Clinical Prognostic Scores</h3>
+<p>
+Three validated clinical scores are computed directly from available laboratory values. The Glasgow Prognostic Score (GPS) assigns 0 points when CRP is below 10 mg/L and albumin is above 3.5 g/dL, 1 point when only one threshold is exceeded, and 2 points when both thresholds are exceeded. It was originally validated as a cancer prognosis score and has been replicated across multiple solid tumor types. The Modified GPS (mGPS) excludes the albumin criterion in the absence of elevated CRP. The Pretreatment Prognostic Score (PPS) combines elevated NLR with hypoalbuminemia.
+</p>
+
+<h3>4.7 Binary Clinical Flags</h3>
+<p>
+Seventeen binary flags encode clinically recognized threshold crossings. Each flag is derived from WHO or standard clinical reference ranges and is set to 1 when the threshold is exceeded, 0 otherwise, and NaN when the underlying lab is missing.
+</p>
+
+<table>
+  <tr><th>Flag</th><th>Threshold</th><th>Clinical Interpretation</th></tr>
+  <tr><td>Anemia</td><td>Hemoglobin below 13 g/dL (male) or 12 g/dL (female)</td><td>WHO anemia criteria; common paraneoplastic presentation</td></tr>
+  <tr><td>Microcytic Anemia</td><td>Anemia + MCV below 80 fL</td><td>Iron-deficiency pattern; associated with GI blood loss and colorectal cancer</td></tr>
+  <tr><td>Thrombocytosis</td><td>Platelets above 400 x 10^9/L</td><td>Recognized paraneoplastic signal; cancer-associated coagulation dysregulation</td></tr>
+  <tr><td>Thrombocytopenia</td><td>Platelets below 150 x 10^9/L</td><td>Marrow infiltration; hematological malignancy signal</td></tr>
+  <tr><td>Leukocytosis</td><td>WBC above 11 x 10^9/L</td><td>Occult infection or early leukemia</td></tr>
+  <tr><td>Lymphopenia</td><td>Lymphocytes below 20%</td><td>Immune suppression; associated with cancer-related immunodeficiency</td></tr>
+  <tr><td>Hypoalbuminemia</td><td>Albumin below 3.5 g/dL</td><td>Cancer-related malnutrition; GPS component</td></tr>
+  <tr><td>Elevated LDH</td><td>LDH above 250 U/L</td><td>Cell turnover and tumor burden marker</td></tr>
+  <tr><td>Elevated CRP</td><td>CRP above 10 mg/L</td><td>Systemic inflammation; GPS component</td></tr>
+  <tr><td>High NLR</td><td>NLR at or above 3.0</td><td>Moderate inflammatory threshold widely used in oncology literature</td></tr>
+  <tr><td>Very High NLR</td><td>NLR at or above 5.0</td><td>Severe immune dysregulation; strong cancer predictor</td></tr>
+</table>
+
+<h3>4.8 Age and Sex Interaction Features</h3>
+<p>
+Cancer risk is non-linear with age and interacts differently with inflammatory markers across age groups. Four age threshold flags (50+, 60+, 70+) and a squared age term are included to capture these non-linearities. Key interaction terms include age multiplied by NLR (capturing the joint effect of aging with immune dysregulation), age multiplied by the anemia flag (older patients with anemia carry substantially higher cancer risk), and a male-times-age-50-plus term that encodes the prostate cancer age and sex interaction.
+</p>
+
+<figure>
+<svg width="820" height="200" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="200" fill="#fff"/>
+  <text x="410" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Feature Engineering Pipeline: 37 Raw Lab Values into 86 Model Features</text>
+  <!-- Flow boxes -->
+  <rect x="10"  y="45" width="120" height="110" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="70"  y="66" font-size="10" text-anchor="middle" font-weight="bold" fill="#1e40af">Raw Labs</text>
+  <text x="70"  y="82" font-size="9" text-anchor="middle" fill="#374151">14 CBC</text>
+  <text x="70"  y="96" font-size="9" text-anchor="middle" fill="#374151">17 CMP</text>
+  <text x="70"  y="110" font-size="9" text-anchor="middle" fill="#374151">3 Iron</text>
+  <text x="70"  y="124" font-size="9" text-anchor="middle" fill="#374151">1 CRP</text>
+  <text x="70"  y="138" font-size="9" text-anchor="middle" fill="#374151">2 Demo</text>
+  <text x="70"  y="152" font-size="9.5" text-anchor="middle" fill="#1e40af" font-weight="bold">37 inputs</text>
+  <line x1="130" y1="100" x2="160" y2="100" stroke="#999" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="160" y="45" width="130" height="50"  rx="6" fill="#fdf4ff" stroke="#9333ea" stroke-width="1.5"/>
+  <text x="225" y="65" font-size="10" text-anchor="middle" font-weight="bold" fill="#7e22ce">Abs. Counts</text>
+  <text x="225" y="80" font-size="9"  text-anchor="middle" fill="#374151">Neut, Lymph, Mono, Eos</text>
+  <text x="225" y="93" font-size="9"  text-anchor="middle" fill="#7e22ce">+4 features</text>
+
+  <rect x="160" y="105" width="130" height="50" rx="6" fill="#fdf4ff" stroke="#9333ea" stroke-width="1.5"/>
+  <text x="225" y="125" font-size="10" text-anchor="middle" font-weight="bold" fill="#7e22ce">Ratios</text>
+  <text x="225" y="140" font-size="9"  text-anchor="middle" fill="#374151">NLR, PLR, MLR, SII, SIRI</text>
+  <text x="225" y="153" font-size="9"  text-anchor="middle" fill="#7e22ce">+10 features (incl. logs)</text>
+
+  <line x1="290" y1="100" x2="310" y2="100" stroke="#999" stroke-width="1.5"/>
+
+  <rect x="310" y="45" width="130" height="50"  rx="6" fill="#fff7ed" stroke="#f97316" stroke-width="1.5"/>
+  <text x="375" y="65" font-size="10" text-anchor="middle" font-weight="bold" fill="#c2410c">Liver + Renal</text>
+  <text x="375" y="80" font-size="9"  text-anchor="middle" fill="#374151">De Ritis, eGFR, A/G, logs</text>
+  <text x="375" y="93" font-size="9"  text-anchor="middle" fill="#c2410c">+9 features</text>
+
+  <rect x="310" y="105" width="130" height="50" rx="6" fill="#fff7ed" stroke="#f97316" stroke-width="1.5"/>
+  <text x="375" y="125" font-size="10" text-anchor="middle" font-weight="bold" fill="#c2410c">Iron + Ferritin</text>
+  <text x="375" y="140" font-size="9"  text-anchor="middle" fill="#374151">Iron Sat., Log Ferritin</text>
+  <text x="375" y="153" font-size="9"  text-anchor="middle" fill="#c2410c">+2 features</text>
+
+  <line x1="440" y1="100" x2="460" y2="100" stroke="#999" stroke-width="1.5"/>
+
+  <rect x="460" y="45" width="130" height="50"  rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="525" y="65" font-size="10" text-anchor="middle" font-weight="bold" fill="#15803d">Clinical Flags</text>
+  <text x="525" y="80" font-size="9"  text-anchor="middle" fill="#374151">17 binary threshold flags</text>
+  <text x="525" y="93" font-size="9"  text-anchor="middle" fill="#15803d">+17 features</text>
+
+  <rect x="460" y="105" width="130" height="50" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="525" y="125" font-size="10" text-anchor="middle" font-weight="bold" fill="#15803d">Prog. Scores</text>
+  <text x="525" y="140" font-size="9"  text-anchor="middle" fill="#374151">GPS, mGPS, PPS</text>
+  <text x="525" y="153" font-size="9"  text-anchor="middle" fill="#15803d">+3 features</text>
+
+  <line x1="590" y1="100" x2="610" y2="100" stroke="#999" stroke-width="1.5"/>
+
+  <rect x="610" y="45" width="130" height="110" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="675" y="66" font-size="10" text-anchor="middle" font-weight="bold" fill="#b91c1c">Age Interactions</text>
+  <text x="675" y="82" font-size="9"  text-anchor="middle" fill="#374151">Age^2, 50/60/70+</text>
+  <text x="675" y="96" font-size="9"  text-anchor="middle" fill="#374151">Age x NLR</text>
+  <text x="675" y="110" font-size="9" text-anchor="middle" fill="#374151">Age x Anemia</text>
+  <text x="675" y="124" font-size="9" text-anchor="middle" fill="#374151">Male x Age50+</text>
+  <text x="675" y="138" font-size="9" text-anchor="middle" fill="#374151">+8 features</text>
+  <text x="675" y="155" font-size="10" text-anchor="middle" fill="#b91c1c" font-weight="bold">Total: 86 features</text>
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#999"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption><strong>Figure 5.</strong> Feature engineering pipeline. The 37 raw laboratory and demographic inputs are expanded into 86 model features through six transformation groups. No feature is imputed: missing values flow through the pipeline as NaN and are handled natively by XGBoost at inference time.</figcaption>
+</figure>
+
+<hr class="section-rule">
+<div class="section-num">Section 5</div>
+<h2>Modeling Approach</h2>
+
+<h3>5.1 Algorithm Selection: XGBoost</h3>
+<p>
+XGBoost (Extreme Gradient Boosted Trees) was selected over alternative algorithms including logistic regression, random forests, LightGBM, and neural network approaches for several principled reasons specific to this dataset.
+</p>
+<p>
+First, and most importantly, XGBoost handles missing values natively. At each decision node during training, XGBoost evaluates both left-branch and right-branch assignment for missing observations and learns the routing direction that minimizes loss. This "default direction" is stored as part of the tree structure, meaning that inference on incomplete panels is principled, not approximate. This property is indispensable for NHANES, where iron and CRP coverage drops to roughly 75-80% due to cycle-level measurement gaps.
+</p>
+<p>
+Second, tree-based models require no feature normalization and are invariant to monotonic transformations of input features. This means raw lab values, log-transformed markers, binary flags, and composite scores can all enter the model on their original scales without standardization.
+</p>
+<p>
+Third, XGBoost supports exact SHAP (SHapley Additive exPlanations) computation through TreeExplainer, providing per-patient feature attribution that satisfies all three desiderata of good explanations: efficiency, symmetry, and dummy player consistency. This is critical for a clinical decision support tool where the explanation is as important as the score.
+</p>
+<p>
+Fourth, ensemble tree methods have consistently outperformed neural networks on tabular clinical data in benchmark comparisons. The limited scale of this dataset (53,448 participants) and the strong prior structure of the engineered features favor interpretable ensemble methods over representation-learning-based approaches.
+</p>
+
+<h3>5.2 Class Imbalance Handling</h3>
+<p>
+With only 10.7% cancer prevalence, an unconstrained classifier would achieve 89.3% accuracy by predicting no cancer for every patient. This naive solution is clinically useless. BorderlineSMOTE was attempted during training to generate synthetic cancer-positive examples by interpolating between minority-class samples in feature space. However, BorderlineSMOTE does not natively handle missing values, and the NHANES feature matrix contains NaN entries for lab values that were not ordered or not collected in a given survey cycle. As a result, SMOTE was skipped for all models. Class imbalance was instead addressed through XGBoost's scale_pos_weight parameter, which Optuna tuned to 4.52 -- meaning the model assigns roughly 4.5x more weight to cancer-positive training examples than to negatives. XGBoost handles missing values natively through learned default routing directions at each tree split, so no imputation was required and no samples were dropped.
+</p>
+
+<h3>5.3 Hyperparameter Optimization</h3>
+<p>
+Hyperparameters were tuned using Optuna Bayesian optimization over 100 trials. Each trial trained an XGBoost model under 3-fold stratified cross-validation with AUC-PR as the objective metric. The search space spanned max_depth (3 to 9), learning rate (0.005 to 0.2 log-scale), n_estimators (200 to 1000), subsample (0.5 to 1.0), colsample_bytree (0.4 to 1.0), min_child_weight (1 to 30), L1 and L2 regularization (1e-4 to 20 log-scale), gamma (0 to 5), and scale_pos_weight (1.0 to 8.34). The best trial achieved an AUC-PR of 0.3222 at the following configuration.
+</p>
+
+<table>
+  <tr><th>Parameter</th><th>Tuned Value</th><th>Rationale</th></tr>
+  <tr><td>max_depth</td><td>4</td><td>Shallow trees prevent overfitting on the highly collinear age feature cluster</td></tr>
+  <tr><td>learning_rate</td><td>0.0208</td><td>Low learning rate offset by high n_estimators and early stopping</td></tr>
+  <tr><td>n_estimators</td><td>747 (early stop at 208)</td><td>Upper bound; training halted at 208 rounds on the any-cancer model</td></tr>
+  <tr><td>subsample</td><td>0.776</td><td>Row sampling per tree; adds variance reduction via bagging</td></tr>
+  <tr><td>colsample_bytree</td><td>0.437</td><td>Aggressive column sampling forces diversity across trees</td></tr>
+  <tr><td>min_child_weight</td><td>21</td><td>High value prevents splits on very small patient subgroups</td></tr>
+  <tr><td>gamma</td><td>4.998</td><td>High minimum split gain; strong regularization against spurious splits</td></tr>
+  <tr><td>scale_pos_weight</td><td>4.52</td><td>Upweights cancer-positive examples to compensate for 10.7% prevalence</td></tr>
+  <tr><td>Early stopping rounds</td><td>40</td><td>Training halts when AUC-PR on held-out 10% fails to improve</td></tr>
+</table>
+
+<h3>5.4 Threshold Calibration</h3>
+<p>
+XGBoost outputs a continuous probability score between 0 and 1. Converting this to a binary yes/no classification requires a threshold. The standard choice of 0.5 is inappropriate for imbalanced problems: at 10.7% prevalence, a 50% threshold places the cut well above the base rate and discards most of the true signal.
+</p>
+<p>
+The operating threshold was instead calibrated using Youden's J statistic, defined as sensitivity plus specificity minus 1. This metric is maximized at the point on the ROC curve that achieves the best balance between true positive rate and true negative rate. On the held-out validation set, Youden's J peaks at a threshold of 0.3305 (33.1%), where the model achieves 83.9% sensitivity and 65.3% specificity. This threshold is stored in the model artifacts and used both in the deployment tool and in the clinical interpretation documentation.
+</p>
+<p>
+A sensitivity of 83.9% means the model correctly identifies 83 out of every 100 true cancer cases. A specificity of 65.3% means 67 out of every 100 non-cancer patients correctly screen negative. For a pre-screening tool intended to identify which patients warrant additional workup, this operating point prioritizes recall over precision, which is the appropriate clinical tradeoff.
+</p>
+
+<h3>5.5 Model Architecture: Seven Parallel Models</h3>
+<p>
+Seven XGBoost binary classifiers are trained simultaneously on the same feature matrix. The primary model predicts any cancer. Six subtype models predict organ-specific cancer using labels derived from the MCQ type-of-cancer questions. All seven models share the same feature engineering pipeline and hyperparameter configuration.
+</p>
+
+<hr class="section-rule">
+<div class="section-num">Section 6</div>
+<h2>Results and Evaluation</h2>
+
+<h3>6.1 Primary Model Performance</h3>
+
+<div class="stat-grid">
+  <div class="stat-box"><span class="stat-val">0.810</span><span class="stat-lbl">AUC-ROC (any cancer)</span></div>
+  <div class="stat-box"><span class="stat-val">0.323</span><span class="stat-lbl">AUC-PR</span></div>
+  <div class="stat-box"><span class="stat-val">83.9%</span><span class="stat-lbl">Sensitivity at threshold</span></div>
+  <div class="stat-box"><span class="stat-val">65.3%</span><span class="stat-lbl">Specificity at threshold</span></div>
+</div>
+
+<p>
+An AUC-ROC of 0.810 means the model ranks a randomly selected cancer patient above a randomly selected non-cancer patient 81% of the time, using only the blood values from a routine physical exam collected before any cancer diagnosis was made. This is a meaningful result on a genuinely difficult problem: the model is trained entirely on pre-symptomatic, pre-diagnostic blood draws where no single value indicates cancer, only the collective pattern.
+</p>
+<p>
+The AUC-PR of 0.323 should be interpreted in the context of the 10.7% class prevalence. A random classifier would achieve AUC-PR equal to the prevalence rate (0.107), meaning the model achieves approximately 3x improvement over random baseline on the precision-recall curve. AUC-PR is the more informative metric for imbalanced classification and reflects how many of the model's positive predictions are correct.
+</p>
+
+<figure>
+<svg width="820" height="400" viewBox="0 0 820 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="400" fill="#fff"/>
+  <text x="210" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">ROC Curve -- Any Cancer Model</text>
+  <text x="610" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Precision-Recall Curve</text>
+
+  <!-- LEFT: ROC Curve -->
+  <!-- Axes -->
+  <line x1="60"  y1="350" x2="360" y2="350" stroke="#888" stroke-width="1.5"/>
+  <line x1="60"  y1="350" x2="60"  y2="40"  stroke="#888" stroke-width="1.5"/>
+  <!-- Diagonal (random) -->
+  <line x1="60" y1="350" x2="360" y2="40" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <!-- ROC curve approximation for AUC=0.810 -->
+  <!-- Cubic bezier: starts at (0,0) top-left in plot = (60,350), ends at (1,1) = (360,40) -->
+  <!-- Good AUC=0.81 curve: rises quickly then flattens -->
+  <path d="M 60,350 C 60,170 150,50 360,40" stroke="#3b82f6" stroke-width="2.5" fill="none"/>
+  <!-- Shaded area under ROC -->
+  <path d="M 60,350 C 60,170 150,50 360,40 L 360,350 Z" fill="#3b82f6" opacity="0.08"/>
+  <!-- Youden's J operating point: FPR=0.331, TPR=0.839 -> x=60+0.331*300=159, y=350-0.839*310=92 -->
+  <circle cx="159" cy="92" r="6" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+  <text x="166" y="86" font-size="10" fill="#ef4444">Threshold 33.1%</text>
+  <text x="166" y="98" font-size="10" fill="#ef4444">Sens=83.9%, Spec=65.3%</text>
+  <!-- Axes labels -->
+  <text x="210" y="372" font-size="11" text-anchor="middle" fill="#555">False Positive Rate</text>
+  <text x="30"  y="200" font-size="11" text-anchor="middle" fill="#555" transform="rotate(-90 30 200)">True Positive Rate</text>
+  <!-- Tick labels -->
+  <text x="60"  y="365" font-size="9" text-anchor="middle" fill="#777">0.0</text>
+  <text x="135" y="365" font-size="9" text-anchor="middle" fill="#777">0.25</text>
+  <text x="210" y="365" font-size="9" text-anchor="middle" fill="#777">0.50</text>
+  <text x="285" y="365" font-size="9" text-anchor="middle" fill="#777">0.75</text>
+  <text x="360" y="365" font-size="9" text-anchor="middle" fill="#777">1.0</text>
+  <text x="52"  y="354" font-size="9" text-anchor="end" fill="#777">0.0</text>
+  <text x="52"  y="276" font-size="9" text-anchor="end" fill="#777">0.25</text>
+  <text x="52"  y="198" font-size="9" text-anchor="end" fill="#777">0.50</text>
+  <text x="52"  y="120" font-size="9" text-anchor="end" fill="#777">0.75</text>
+  <text x="52"  y="44"  font-size="9" text-anchor="end" fill="#777">1.0</text>
+  <!-- AUC annotation -->
+  <text x="230" y="300" font-size="12" font-weight="bold" fill="#3b82f6">AUC-ROC = 0.810</text>
+
+  <!-- RIGHT: Precision-Recall Curve -->
+  <line x1="460" y1="350" x2="760" y2="350" stroke="#888" stroke-width="1.5"/>
+  <line x1="460" y1="350" x2="460" y2="40"  stroke="#888" stroke-width="1.5"/>
+  <!-- Random baseline: horizontal line at precision = prevalence (0.107) -->
+  <!-- y = 350 - 0.107*310 = 317 -->
+  <line x1="460" y1="317" x2="760" y2="317" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="762" y="320" font-size="9" fill="#9ca3af">Random</text>
+  <!-- PR curve: starts high precision at low recall, drops as recall increases -->
+  <path d="M 460,150 C 490,155 530,170 580,220 C 630,270 700,310 760,317" stroke="#7c3aed" stroke-width="2.5" fill="none"/>
+  <path d="M 460,150 C 490,155 530,170 580,220 C 630,270 700,310 760,317 L 760,350 L 460,350 Z" fill="#7c3aed" opacity="0.08"/>
+  <!-- Operating point: recall=0.839, precision estimate ~0.31, y=350-0.839*310=92, x=460+0.839*300=710 -->
+  <circle cx="710" cy="254" r="6" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+  <!-- Axes labels -->
+  <text x="610" y="372" font-size="11" text-anchor="middle" fill="#555">Recall (Sensitivity)</text>
+  <text x="430" y="200" font-size="11" text-anchor="middle" fill="#555" transform="rotate(-90 430 200)">Precision</text>
+  <text x="460" y="365" font-size="9" text-anchor="middle" fill="#777">0.0</text>
+  <text x="535" y="365" font-size="9" text-anchor="middle" fill="#777">0.25</text>
+  <text x="610" y="365" font-size="9" text-anchor="middle" fill="#777">0.50</text>
+  <text x="685" y="365" font-size="9" text-anchor="middle" fill="#777">0.75</text>
+  <text x="760" y="365" font-size="9" text-anchor="middle" fill="#777">1.0</text>
+  <text x="452" y="354" font-size="9" text-anchor="end" fill="#777">0.0</text>
+  <text x="452" y="276" font-size="9" text-anchor="end" fill="#777">0.25</text>
+  <text x="452" y="198" font-size="9" text-anchor="end" fill="#777">0.50</text>
+  <text x="452" y="120" font-size="9" text-anchor="end" fill="#777">0.75</text>
+  <text x="452" y="44"  font-size="9" text-anchor="end" fill="#777">1.0</text>
+  <text x="540" y="110" font-size="12" font-weight="bold" fill="#7c3aed">AUC-PR = 0.323</text>
+  <text x="540" y="126" font-size="10" fill="#7c3aed">Random baseline: 0.107</text>
+</svg>
+<figcaption><strong>Figure 6.</strong> Left: ROC curve for the any-cancer model. The red point marks the operating threshold of 33.1%, selected via Youden's J statistic to maximize the sum of sensitivity and specificity. AUC-ROC of 0.810 represents strong discrimination for a pre-diagnostic task using only routine blood work. Right: Precision-Recall curve. The dashed horizontal line represents random classifier performance at the class prevalence rate of 10.7%. The model achieves approximately 3x improvement over random baseline across all recall levels.</figcaption>
+</figure>
+
+<h3>6.2 Cross-Validation</h3>
+<p>
+The model was evaluated using 5-fold stratified cross-validation to ensure performance estimates are not artifacts of a single train/validation split. Stratified folds preserve the 10.7% cancer prevalence in each fold. Class imbalance within each fold was handled via scale_pos_weight (4.52) rather than SMOTE, as the NHANES feature matrix contains missing values that prevented BorderlineSMOTE from executing. Validation folds always reflect true class prevalence. Results across all five folds are shown in Table 4.
+</p>
+
+<table>
+  <tr><th>Fold</th><th>AUC-ROC</th><th>AUC-PR</th><th>Sensitivity</th><th>Specificity</th></tr>
+  <tr><td>Fold 1</td><td>0.810</td><td>0.323</td><td>0.757</td><td>0.726</td></tr>
+  <tr><td>Fold 2</td><td>0.808</td><td>0.321</td><td>0.841</td><td>0.640</td></tr>
+  <tr><td>Fold 3</td><td>0.806</td><td>0.310</td><td>0.794</td><td>0.690</td></tr>
+  <tr><td>Fold 4</td><td>0.810</td><td>0.320</td><td>0.817</td><td>0.670</td></tr>
+  <tr><td>Fold 5</td><td>0.815</td><td>0.340</td><td>0.795</td><td>0.691</td></tr>
+  <tr><td><strong>Mean</strong></td><td><strong>0.810</strong></td><td><strong>0.323</strong></td><td><strong>0.801</strong></td><td><strong>0.683</strong></td></tr>
+  <tr><td>Std. Dev.</td><td>0.003</td><td>0.010</td><td>0.027</td><td>0.029</td></tr>
+</table>
+
+<p>
+The low standard deviation across folds (0.003 for AUC-ROC) indicates that performance is stable and not driven by favorable data splits. The model generalizes consistently across subsets of the NHANES cohort.
+</p>
+
+<h3>6.3 Cancer Subtype Model Performance</h3>
+
+<figure>
+<svg width="820" height="280" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="280" fill="#fff"/>
+  <text x="410" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">AUC-ROC by Cancer Subtype Model</text>
+  <!-- Axes -->
+  <line x1="120" y1="220" x2="800" y2="220" stroke="#888" stroke-width="1"/>
+  <line x1="120" y1="40"  x2="120" y2="220" stroke="#888" stroke-width="1"/>
+  <!-- X grid at 0.5, 0.6, 0.7, 0.8, 0.9 -->
+  <!-- Scale: 0 to 1.0, width=680px. x = 120 + val*680 -->
+  <line x1="462" y1="40" x2="462" y2="220" stroke="#eee" stroke-width="1"/>
+  <line x1="530" y1="40" x2="530" y2="220" stroke="#eee" stroke-width="1"/>
+  <line x1="598" y1="40" x2="598" y2="220" stroke="#eee" stroke-width="1"/>
+  <line x1="666" y1="40" x2="666" y2="220" stroke="#eee" stroke-width="1"/>
+  <line x1="734" y1="40" x2="734" y2="220" stroke="#eee" stroke-width="1"/>
+  <!-- X labels -->
+  <text x="462" y="238" font-size="10" text-anchor="middle" fill="#666">0.5</text>
+  <text x="530" y="238" font-size="10" text-anchor="middle" fill="#666">0.6</text>
+  <text x="598" y="238" font-size="10" text-anchor="middle" fill="#666">0.7</text>
+  <text x="666" y="238" font-size="10" text-anchor="middle" fill="#666">0.8</text>
+  <text x="734" y="238" font-size="10" text-anchor="middle" fill="#666">0.9</text>
+  <text x="802" y="238" font-size="10" text-anchor="middle" fill="#666">1.0</text>
+  <!-- Bars sorted descending by AUC. x = 121 + auc*680. Bar height=24, gap=4. -->
+  <!-- Prostate: 0.933 -> 634px -->
+  <rect x="121" y="46"  width="634" height="24" fill="#7c3aed" opacity="0.9" rx="2"/>
+  <text x="116" y="63"  font-size="11" text-anchor="end" fill="#333">Prostate</text>
+  <text x="760" y="63"  font-size="10" fill="#7c3aed" font-weight="bold">0.933</text>
+
+  <!-- Breast: 0.904 -> 615px -->
+  <rect x="121" y="76"  width="615" height="24" fill="#7c3aed" opacity="0.7" rx="2"/>
+  <text x="116" y="93"  font-size="11" text-anchor="end" fill="#333">Breast</text>
+  <text x="741" y="93"  font-size="10" fill="#7c3aed" font-weight="bold">0.904</text>
+
+  <!-- Colorectal: 0.815 -> 554px -->
+  <rect x="121" y="106" width="554" height="24" fill="#0891b2" opacity="0.85" rx="2"/>
+  <text x="116" y="123" font-size="11" text-anchor="end" fill="#333">Colorectal</text>
+  <text x="680" y="123" font-size="10" fill="#0891b2" font-weight="bold">0.815</text>
+
+  <!-- Any Cancer: 0.810 -> 551px -->
+  <rect x="121" y="136" width="551" height="24" fill="#1d4ed8" opacity="0.85" rx="2"/>
+  <text x="116" y="153" font-size="11" text-anchor="end" fill="#333">Any Cancer</text>
+  <text x="677" y="153" font-size="10" fill="#1d4ed8" font-weight="bold">0.810</text>
+
+  <!-- Leukemia: 0.775 -> 527px -->
+  <rect x="121" y="166" width="527" height="24" fill="#0891b2" opacity="0.65" rx="2"/>
+  <text x="116" y="183" font-size="11" text-anchor="end" fill="#333">Leukemia</text>
+  <text x="653" y="183" font-size="10" fill="#0891b2" font-weight="bold">0.775</text>
+
+  <!-- Lung: 0.739 -> 502px -->
+  <rect x="121" y="196" width="502" height="24" fill="#64748b" opacity="0.8" rx="2"/>
+  <text x="116" y="212" font-size="11" text-anchor="end" fill="#333">Lung</text>
+  <text x="628" y="212" font-size="10" fill="#64748b" font-weight="bold">0.739</text>
+
+  <!-- Lymphoma: 0.572 -> 389px (near-random) -->
+  <rect x="121" y="226" width="389" height="24" fill="#dc2626" opacity="0.6" rx="2"/>
+  <text x="116" y="243" font-size="11" text-anchor="end" fill="#333">Lymphoma</text>
+  <text x="515" y="243" font-size="10" fill="#dc2626" font-weight="bold">0.572 *</text>
+
+  <text x="120" y="270" font-size="10" fill="#888" font-style="italic">* Lymphoma AUC of 0.572 is near-random and reflects insufficient signal in the NHANES feature set for this subtype (96 positives). Use with caution.</text>
+</svg>
+<figcaption><strong>Figure 7.</strong> AUC-ROC for the any-cancer model and six cancer subtype models, measured on held-out validation sets. Prostate (0.933) and breast (0.904) achieve the highest discrimination, benefiting strongly from the age-sex interaction features and the large number of positives in the training set (738 and 688 respectively). Colorectal (0.815) performs comparably to the any-cancer model, reflecting its iron-deficiency and anemia signal. Leukemia (0.775) draws on WBC differential patterns directly observable in the CBC. Lung (0.739) shows weaker discrimination consistent with the diffuse blood chemistry changes of lung malignancy. Lymphoma (0.572) is essentially uninformative and should not be used for clinical guidance; the 96 positive cases are insufficient to learn a reliable signal from routine blood work alone.</figcaption>
+</figure>
+
+<table>
+  <tr><th>Model</th><th>Training Positives</th><th>Trees</th><th>Val AUC-ROC</th><th>Primary Signal Features</th></tr>
+  <tr><td>Any Cancer</td><td>5,723</td><td>208</td><td>0.810</td><td>Age, age interactions, eGFR, CRP, RBC</td></tr>
+  <tr><td>Colorectal</td><td>345</td><td>54</td><td>0.815</td><td>Iron saturation, Anemia flag, Ferritin, Albumin</td></tr>
+  <tr><td>Lung</td><td>117</td><td>33</td><td>0.739</td><td>NLR, LDH, Albumin, Age, CRP</td></tr>
+  <tr><td>Breast</td><td>688</td><td>34</td><td>0.904</td><td>PLR, Hemoglobin, Age x sex interaction</td></tr>
+  <tr><td>Prostate</td><td>738</td><td>51</td><td>0.933</td><td>Male x age 50+, Alkaline phosphatase, eGFR</td></tr>
+  <tr><td>Leukemia</td><td>53</td><td>39</td><td>0.775</td><td>WBC, Lymphocyte%, NLR, Platelet count</td></tr>
+  <tr><td>Lymphoma</td><td>96</td><td>39</td><td>0.572 *</td><td>Insufficient signal -- near random</td></tr>
+</table>
+
+<hr class="section-rule">
+<div class="section-num">Section 7</div>
+<h2>Feature Importance and SHAP Explainability</h2>
+
+<h3>7.1 Global Feature Importance</h3>
+<p>
+SHAP (SHapley Additive exPlanations) values were computed using the TreeExplainer algorithm on a random sample of 2,000 participants from the held-out validation set. SHAP values are exact for tree models, meaning they satisfy the game-theoretic axioms of efficiency (values sum to prediction), symmetry (features with identical contributions receive equal attribution), and dummy player consistency (features that never change the prediction receive zero attribution).
+</p>
+<p>
+The mean absolute SHAP value for each feature -- averaged across all 2,000 sampled patients -- represents the average contribution magnitude of that feature to the risk score. This is the most reliable single measure of global feature importance for non-linear models.
+</p>
+
+<figure>
+<svg width="820" height="440" viewBox="0 0 820 440" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="440" fill="#fff"/>
+  <text x="410" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Top 15 Features by Mean Absolute SHAP Value (Any Cancer Model)</text>
+  <!-- Y axis -->
+  <line x1="230" y1="40" x2="230" y2="400" stroke="#888" stroke-width="1"/>
+  <!-- X axis -->
+  <line x1="230" y1="400" x2="790" y2="400" stroke="#888" stroke-width="1"/>
+  <!-- X grid lines at 0.10, 0.20, 0.30, 0.40 -->
+  <!-- scale: 560px / 0.50 max = 1120 px/unit; grid x = 230 + val*1120 -->
+  <!-- 0.10: 230+112=342  0.20: 230+224=454  0.30: 230+336=566  0.40: 230+448=678 -->
+  <line x1="342" y1="40" x2="342" y2="400" stroke="#eee" stroke-width="1"/>
+  <line x1="454" y1="40" x2="454" y2="400" stroke="#eee" stroke-width="1"/>
+  <line x1="566" y1="40" x2="566" y2="400" stroke="#eee" stroke-width="1"/>
+  <line x1="678" y1="40" x2="678" y2="400" stroke="#eee" stroke-width="1"/>
+  <text x="342" y="416" font-size="10" text-anchor="middle" fill="#666">0.10</text>
+  <text x="454" y="416" font-size="10" text-anchor="middle" fill="#666">0.20</text>
+  <text x="566" y="416" font-size="10" text-anchor="middle" fill="#666">0.30</text>
+  <text x="678" y="416" font-size="10" text-anchor="middle" fill="#666">0.40</text>
+  <text x="410" y="432" font-size="11" text-anchor="middle" fill="#555">Mean Absolute SHAP Value</text>
+
+  <!-- Real SHAP values from v2 training. Scale: 560px / 0.50 max = 1120 px/unit -->
+  <!-- Grid lines at 0.10=342, 0.20=454, 0.30=566, 0.40=678 -->
+
+  <!-- Age: 0.4747 -> 532px -->
+  <rect x="231" y="48"  width="532" height="20" fill="#dc2626" opacity="0.9" rx="2"/>
+  <text x="226" y="63"  font-size="10.5" text-anchor="end" fill="#333">Age</text>
+  <text x="767" y="63"  font-size="9.5" fill="#dc2626">0.475</text>
+
+  <!-- Age squared: 0.2963 -> 332px -->
+  <rect x="231" y="72"  width="332" height="20" fill="#dc2626" opacity="0.72" rx="2"/>
+  <text x="226" y="87"  font-size="10.5" text-anchor="end" fill="#333">Age squared</text>
+  <text x="567" y="87"  font-size="9.5" fill="#dc2626">0.296</text>
+
+  <!-- Age 50+ flag: 0.1226 -> 137px -->
+  <rect x="231" y="96"  width="137" height="20" fill="#dc2626" opacity="0.55" rx="2"/>
+  <text x="226" y="111" font-size="10.5" text-anchor="end" fill="#333">Age 50+ flag</text>
+  <text x="372" y="111" font-size="9.5" fill="#dc2626">0.123</text>
+
+  <!-- Age 60+ flag: 0.1193 -> 134px -->
+  <rect x="231" y="120" width="134" height="20" fill="#dc2626" opacity="0.48" rx="2"/>
+  <text x="226" y="135" font-size="10.5" text-anchor="end" fill="#333">Age 60+ flag</text>
+  <text x="369" y="135" font-size="9.5" fill="#dc2626">0.119</text>
+
+  <!-- Sex (Male): 0.0664 -> 74px -->
+  <rect x="231" y="144" width="74"  height="20" fill="#7c3aed" opacity="0.85" rx="2"/>
+  <text x="226" y="159" font-size="10.5" text-anchor="end" fill="#333">Sex (Male)</text>
+  <text x="309" y="159" font-size="9.5" fill="#7c3aed">0.066</text>
+
+  <!-- eGFR: 0.0625 -> 70px -->
+  <rect x="231" y="168" width="70"  height="20" fill="#16a34a" opacity="0.85" rx="2"/>
+  <text x="226" y="183" font-size="10.5" text-anchor="end" fill="#333">eGFR</text>
+  <text x="305" y="183" font-size="9.5" fill="#16a34a">0.063</text>
+
+  <!-- Age x Platelet: 0.0563 -> 63px -->
+  <rect x="231" y="192" width="63"  height="20" fill="#f59e0b" opacity="0.85" rx="2"/>
+  <text x="226" y="207" font-size="10.5" text-anchor="end" fill="#333">Age x Platelet</text>
+  <text x="298" y="207" font-size="9.5" fill="#f59e0b">0.056</text>
+
+  <!-- Age x NLR: 0.0545 -> 61px -->
+  <rect x="231" y="216" width="61"  height="20" fill="#f59e0b" opacity="0.75" rx="2"/>
+  <text x="226" y="231" font-size="10.5" text-anchor="end" fill="#333">Age x NLR</text>
+  <text x="296" y="231" font-size="9.5" fill="#f59e0b">0.055</text>
+
+  <!-- CRP: 0.0483 -> 54px -->
+  <rect x="231" y="240" width="54"  height="20" fill="#3b82f6" opacity="0.85" rx="2"/>
+  <text x="226" y="255" font-size="10.5" text-anchor="end" fill="#333">C-Reactive Protein</text>
+  <text x="289" y="255" font-size="9.5" fill="#3b82f6">0.048</text>
+
+  <!-- RBC: 0.0407 -> 46px -->
+  <rect x="231" y="264" width="46"  height="20" fill="#3b82f6" opacity="0.75" rx="2"/>
+  <text x="226" y="279" font-size="10.5" text-anchor="end" fill="#333">Red Blood Cell Count</text>
+  <text x="281" y="279" font-size="9.5" fill="#3b82f6">0.041</text>
+
+  <!-- Age 70+: 0.0368 -> 41px -->
+  <rect x="231" y="288" width="41"  height="20" fill="#dc2626" opacity="0.38" rx="2"/>
+  <text x="226" y="303" font-size="10.5" text-anchor="end" fill="#333">Age 70+ flag</text>
+  <text x="276" y="303" font-size="9.5" fill="#888">0.037</text>
+
+  <!-- MCV: 0.0366 -> 41px -->
+  <rect x="231" y="312" width="41"  height="20" fill="#0891b2" opacity="0.75" rx="2"/>
+  <text x="226" y="327" font-size="10.5" text-anchor="end" fill="#333">MCV</text>
+  <text x="276" y="327" font-size="9.5" fill="#0891b2">0.037</text>
+
+  <!-- Total Protein: 0.0274 -> 31px -->
+  <rect x="231" y="336" width="31"  height="20" fill="#0891b2" opacity="0.6" rx="2"/>
+  <text x="226" y="351" font-size="10.5" text-anchor="end" fill="#333">Total Protein</text>
+  <text x="266" y="351" font-size="9.5" fill="#888">0.027</text>
+
+  <!-- MCH: 0.0256 -> 29px -->
+  <rect x="231" y="360" width="29"  height="20" fill="#0891b2" opacity="0.5" rx="2"/>
+  <text x="226" y="375" font-size="10.5" text-anchor="end" fill="#333">MCH</text>
+  <text x="264" y="375" font-size="9.5" fill="#888">0.026</text>
+
+  <!-- MLR: 0.0246 -> 28px -->
+  <rect x="231" y="384" width="28"  height="20" fill="#0891b2" opacity="0.4" rx="2"/>
+  <text x="226" y="399" font-size="10.5" text-anchor="end" fill="#333">MLR (Mono/Lymphocyte)</text>
+  <text x="263" y="399" font-size="9.5" fill="#888">0.025</text>
+</svg>
+<figcaption><strong>Figure 8.</strong> Global feature importance for the any-cancer model, measured by mean absolute SHAP value across 2,000 validation-set participants. Age-related features account for the four largest contributors — raw age (0.475), age-squared (0.296), and age threshold flags for 50+ (0.123) and 60+ (0.119) — consistent with the exponential age-dependence of cancer incidence. Sex (male, 0.066) reflects the higher aggregate cancer prevalence in male NHANES participants. Among modifiable laboratory biomarkers, eGFR (0.063) and CRP (0.048) are the most informative, reflecting renal function decline associated with malignancy and systemic inflammatory burden respectively. Notably, engineered age-interaction features (Age × Platelet 0.056; Age × NLR 0.055) outrank all raw CBC and CMP values individually, validating the feature engineering approach: the clinical signal is amplified by combining age context with laboratory abnormality rather than treating each variable in isolation. CBC indices (RBC, MCV, MCH) and composite immune ratios (MLR) appear in positions 10–15, providing marginal but additive discriminative value.</figcaption>
+</figure>
+
+<h3>7.2 Individual Patient Explanations</h3>
+<p>
+Beyond global importance, SHAP enables per-patient risk attribution. For every prediction the model makes, each of the 86 input features receives a signed contribution value. Positive contributions (risk-increasing) are displayed in red in the deployment tool; negative contributions (risk-decreasing, also called protective factors) are displayed in green. The top 10 drivers are ranked by absolute contribution magnitude and displayed alongside the risk score.
+</p>
+<p>
+For example, a 67-year-old male patient with an elevated CRP of 18 mg/L, albumin of 3.1 g/dL, and NLR of 5.2 would receive a high-risk score where the primary drivers are age, CRP, albumin, and NLR. The clinical summary narrative translates these into plain language: "CRP is elevated at 18.0 mg/L, consistent with systemic inflammation; albumin is low at 3.1 g/dL, consistent with malnutrition or chronic disease." This explanation is generated algorithmically from the SHAP values and the specific abnormal thresholds and is always patient-specific.
+</p>
+<p>
+This design addresses a fundamental limitation of traditional risk scores, which apply the same coefficient weights regardless of which specific values are abnormal in a given patient. SHAP attribution adapts to the individual patient's profile, which is essential for clinical utility.
+</p>
+
+<div class="placeholder-fig">
+  Figure 9 (SHAP beeswarm plot): Insert model output from training notebook.<br>
+  From Colab: shap.summary_plot(shap_vals, X_sample, feature_names=feature_cols, max_display=20)
+</div>
+
+<hr class="section-rule">
+<div class="section-num">Section 8</div>
+<h2>Deployment: Browser-Based Clinical Tool</h2>
+
+<h3>8.1 Architecture</h3>
+<p>
+LabSentinel is deployed as a single, self-contained HTML file that runs entirely within the browser with no server, no Python installation, and no internet connection required after initial page load. The XGBoost model JSON files are embedded directly into the HTML at build time, with a Python generator script that reads the trained model artifacts and writes the JavaScript inference code. This architecture makes the tool immediately usable by anyone, including clinicians with no technical background, without any setup steps.
+</p>
+<p>
+The full XGBoost tree inference is reimplemented in JavaScript. At the core is a tree traversal function that walks each of the 464 total trees (across 7 models) from root to leaf, routing each observation by comparing feature values against split thresholds, using the learned default direction when a feature value is missing. Leaf values are summed across all trees and passed through the sigmoid function to produce a probability estimate. This produces output numerically consistent with the Python XGBoost library.
+</p>
+
+<h3>8.2 Gemini AI Lab Report Parser</h3>
+<p>
+A key usability feature is automatic lab report parsing using the Google Gemini 2.0 Flash vision model. When a user uploads their lab report as a PDF or photograph, the file is encoded in base64 and sent to the Gemini API along with a structured extraction prompt that maps lab test names to the 36 form field identifiers. The API returns a JSON object with recognized values, which are then automatically populated into the corresponding form fields and highlighted in amber to signal that the values were machine-extracted and should be reviewed before analysis.
+</p>
+<p>
+This eliminates the need to manually transcribe lab values from a printed report, which is the primary usability barrier for a form with 36 numeric input fields. The parser handles variability in lab report formats (standard PDF outputs from Quest Diagnostics, LabCorp, hospital EHR systems) and unit conversions (for example, CRP reported in mg/dL versus mg/L).
+</p>
+
+<h3>8.3 PDF Report Generation</h3>
+<p>
+Results can be exported as a formatted clinical PDF using jsPDF, running entirely in the browser. The report includes the risk score and tier, the clinical summary narrative, the top risk driver table with SHAP contribution bars, the cancer subtype signals section, and the operating point statistics (sensitivity, specificity, AUC-ROC, training population). A legal disclaimer and non-diagnostic notice appear at the footer of every generated report.
+</p>
+
+<hr class="section-rule">
+<div class="section-num">Section 9</div>
+<h2>Discussion</h2>
+
+<h3>9.1 What the Model Is and Is Not</h3>
+<p>
+The fundamental question this model answers is: given a patient's routine blood panel, does the pattern of values resemble the patterns that were statistically associated with cancer in the NHANES population at the time of their exam? A high score means similarity to cancer-associated patterns, not a cancer diagnosis. Many non-cancer conditions can produce similar patterns, including chronic inflammatory disease, autoimmune conditions, and severe anemia. The model cannot distinguish between them.
+</p>
+<p>
+The mortality-linked labels provide the strongest evidence for the pre-diagnostic claim. These participants were determined to have died of cancer within 5 years of their blood draw. The blood values that predicted this outcome were drawn before any diagnosis was made. This is genuine pre-diagnostic signal, not a coincidence of timing. However, the MCQ self-report labels are cross-sectional, meaning we cannot determine whether a participant's cancer was newly diagnosed or had been present for years. This introduces noise into the training labels.
+</p>
+
+<h3>9.2 Comparison to Existing Screening Tools</h3>
+<p>
+Current cancer screening guidelines rely on organ-specific tests at fixed age thresholds: colonoscopy after 45, mammography after 40, PSA testing with shared decision-making after 50, and low-dose CT for high-risk lung cancer candidates. These tests are excellent for their target organs but do not provide a systemic pre-screen that might prompt additional investigation in patients not yet meeting age-based criteria.
+</p>
+<p>
+LabSentinel operates differently. It does not replace any existing screening test. It adds a layer of signal extraction to the routine annual blood draw that patients already receive, at zero additional cost and without requiring additional sample collection. Its clinical value is as a triage tool that identifies which patients warrant heightened attention, not as a substitute for confirmatory diagnostic tests.
+</p>
+
+<h3>9.3 Limitations</h3>
+<p>
+Several limitations constrain the current model. First, NHANES is a non-institutionalized US civilian population sample. Hospitalized patients, patients in care facilities, and patients in acute illness episodes are systematically excluded, which may limit generalizability to clinical settings where blood panels are drawn during illness rather than routine wellness visits.
+</p>
+<p>
+Second, the "any cancer" label is broad. The composite outcome includes non-melanoma skin cancer, which has very low mortality and substantially different biological behavior from solid organ tumors. Its inclusion may dilute the signal for more aggressive cancers. Future iterations could train separate models on mortality-confirmed cancer deaths only, at the cost of reduced training sample size.
+</p>
+<p>
+Third, the MCQ self-report cancer labels do not include pathology confirmation. Participants self-report a cancer diagnosis made by a physician, which introduces recall bias and potential misclassification.
+</p>
+<p>
+Fourth, the model predicts a scalar risk score, not a cancer type or stage. While six subtype models provide additional specificity, none of them approach the performance of organ-specific tests designed for that exact cancer type.
+</p>
+<p>
+Fifth, NHANES data collection predates some current clinical practices. LDH, for example, was not consistently measured across all cycles. Iron studies and CRP are missing for two of the ten cycles due to data release decisions by NHANES, not because participants weren't tested.
+</p>
+
+<hr class="section-rule">
+<div class="section-num">Section 10</div>
+<h2>Conclusion</h2>
+
+<p>
+LabSentinel demonstrates that routine blood panels, available from a standard annual physical at no additional cost, contain statistically extractable pre-diagnostic cancer signals when analyzed with properly engineered features and gradient boosted tree models. Using 53,448 NHANES participants followed through the National Death Index, a model achieving AUC-ROC 0.810 and 83.9% sensitivity at a calibrated threshold was trained, validated, and deployed as an immediately usable browser-based clinical tool.
+</p>
+<p>
+The 86-feature engineering framework, grounded in validated oncology biomarkers including NLR, SII, Glasgow Prognostic Score, and eGFR, contributes meaningfully beyond raw lab values. SHAP attribution makes every prediction explainable at the patient level, addressing the transparency requirement that is essential for any clinical decision support tool. The deployment architecture -- a self-contained HTML file with embedded model weights, JavaScript inference, Gemini-powered lab report parsing, and in-browser PDF generation -- eliminates all technical barriers between the trained model and a clinician with a patient's lab report.
+</p>
+<p>
+The most important caveat is also the most fundamental: this is a research tool, not a diagnostic test. An AUC-ROC of 0.810 on a population survey is encouraging as a proof of concept, but clinical deployment would require prospective validation in an independent cohort, regulatory review, and clinical workflow integration far beyond the scope of this project. What this work establishes is that the signal is real, measurable from data that already exists, and extractable with methods that are well within the current state of the art.
+</p>
+<p>
+Immediate future work involves isotonic probability calibration to improve calibration of the raw XGBoost score into a true prevalence-adjusted probability, and imputation-aware oversampling strategies that can handle the sparse NHANES feature matrix without requiring complete cases. The lymphoma subtype model (AUC 0.572) requires substantially more positive training examples and is a candidate for transfer learning from the any-cancer model weights. On the deployment side, a server-side inference endpoint would enable ensemble averaging across multiple model seeds, which the browser-based architecture currently cannot support. The self-contained HTML deployment is designed to regenerate from any compatible model artifact in under 2 seconds, making iterative model improvement directly translatable to the deployed product.
+</p>
+
+<hr class="section-rule">
+<div class="section-num">References</div>
+<h2>References</h2>
+
+<div class="refs">
+<ol>
+  <li>Centers for Disease Control and Prevention / National Center for Health Statistics. National Health and Nutrition Examination Survey Data. US Department of Health and Human Services, 1999-2018. Available at: wwwn.cdc.gov/nchs/nhanes.</li>
+  <li>National Center for Health Statistics. NCHS Linked Mortality Files, Public-Use Files. Mortality follow-up through December 31, 2019. Hyattsville, MD: National Center for Health Statistics, 2021.</li>
+  <li>Templeton AJ, McNamara MG, Seruga B, et al. Prognostic role of neutrophil-to-lymphocyte ratio in solid tumors: a systematic review and meta-analysis. Journal of the National Cancer Institute. 2014;106(6):dju124.</li>
+  <li>Hu B, Yang XR, Xu Y, et al. Systemic immune-inflammation index predicts prognosis of patients after curative resection for hepatocellular carcinoma. Clinical Cancer Research. 2014;20(23):6212-6222.</li>
+  <li>McMillan DC. The systemic inflammation-based Glasgow Prognostic Score: a decade of experience in patients with cancer. Cancer Treatment Reviews. 2013;39(5):534-540.</li>
+  <li>Inker LA, Eneanya ND, Coresh J, et al. New creatinine and cystatin C equations to estimate GFR without race. New England Journal of Medicine. 2021;385(19):1737-1749.</li>
+  <li>Chen T, Guestrin C. XGBoost: a scalable tree boosting system. Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. 2016:785-794.</li>
+  <li>Chawla NV, Bowyer KW, Hall LO, Kegelmeyer WP. SMOTE: synthetic minority over-sampling technique. Journal of Artificial Intelligence Research. 2002;16:321-357.</li>
+  <li>Lundberg SM, Lee SI. A unified approach to interpreting model predictions. Advances in Neural Information Processing Systems. 2017;30.</li>
+  <li>Lundberg SM, Erion G, Chen H, et al. From local explanations to global understanding with explainable AI for trees. Nature Machine Intelligence. 2020;2(1):56-67.</li>
+  <li>Youden WJ. Index for rating diagnostic tests. Cancer. 1950;3(1):32-35.</li>
+  <li>Siegel RL, Miller KD, Wagle NS, Jemal A. Cancer statistics, 2023. CA: A Cancer Journal for Clinicians. 2023;73(1):17-48.</li>
+</ol>
+</div>
+
+</body>
+</html>

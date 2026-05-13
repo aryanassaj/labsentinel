@@ -1,10 +1,13 @@
 {
-  "version": "1.0.0",
-  "trained_at": "2026-04-11T04:49:33.486501",
+  "version": "v2.0.0",
+  "trained_at": "2026-05-13T05:44:01.898812",
   "target": "any_cancer",
-  "n_samples": 53448,
   "n_features": 86,
-  "cv_auc_roc": 0.8101553749708286,
-  "cv_auc_pr": 0.31877267220408634,
-  "tuned": false
+  "n_samples": 53448,
+  "cv_auc_roc": 0.8099287202169023,
+  "cv_auc_pr": 0.3228483925756607,
+  "cv_sensitivity": 0.800980395150701,
+  "cv_specificity": 0.6834363541121006,
+  "tuned": true,
+  "optuna_trials": 100
 }
