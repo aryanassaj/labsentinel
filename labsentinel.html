@@ -279,8 +279,19 @@ const MODELS={"model_any_cancer": [{"lc": [1, 3, 5, 7, 9, 11, 13, -1, 15, 17, 19
 // ════════════════════════════════════════════════════════════════════════════
 // GEMINI AI LAB REPORT PARSER
 // ════════════════════════════════════════════════════════════════════════════
-const GEMINI_API_KEY = 'AIzaSyAeZhKbFcmqUMFsZlDhV_q02PtehxKTlDo';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+function getGeminiKey(){
+  let k = localStorage.getItem('gemini_api_key');
+  if(!k){
+    k = prompt('Enter your Gemini API key (stored locally in your browser only):');
+    if(k) localStorage.setItem('gemini_api_key', k.trim());
+  }
+  return k ? k.trim() : null;
+}
+function geminiURL(){
+  const k = getGeminiKey();
+  if(!k) return null;
+  return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${k}`;
+}
 
 const GEMINI_PROMPT = `You are a medical lab report parser. Extract all laboratory values from the attached document and return ONLY a valid JSON object. Use null for any field not present in the report. Do not include any explanation, markdown, or text outside the JSON.
 
@@ -380,6 +391,8 @@ function clearAutofillHighlights(){
 
 async function parseLabReport(file){
   clearAutofillHighlights();
+  const url = geminiURL();
+  if(!url){ setImportStatus('error','No API key provided. Reload the page and enter your Gemini API key.'); return; }
   setImportStatus('loading','Reading lab report with AI...');
 
   const isHTML = file.name.endsWith('.html') || file.type === 'text/html';
@@ -415,7 +428,7 @@ async function parseLabReport(file){
 
   let parsed;
   try{
-    const resp = await fetch(GEMINI_URL,{
+    const resp = await fetch(url,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(requestBody)
