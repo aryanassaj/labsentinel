@@ -1,5 +1,7 @@
 # LabSentinel — Early Cancer Signal Detector
 
+**[Launch LabSentinel](https://aryanassaj.github.io/labsentinel/labsentinel.html)**
+
 > **RESEARCH TOOL — NOT FOR CLINICAL DIAGNOSIS.**  
 > LabSentinel is a clinical decision-support aid that flags statistical patterns in routine blood work associated with cancer. It does not diagnose cancer. All findings must be interpreted by a qualified clinician.
 
