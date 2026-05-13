@@ -290,7 +290,7 @@ function getGeminiKey(){
 function geminiURL(){
   const k = getGeminiKey();
   if(!k) return null;
-  return `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${k}`;
+  return `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${k}`;
 }
 
 const GEMINI_PROMPT = `You are a medical lab report parser. Extract all laboratory values from the attached document and return ONLY a valid JSON object. Use null for any field not present in the report. Do not include any explanation, markdown, or text outside the JSON.
