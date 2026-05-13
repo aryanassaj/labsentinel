@@ -1644,13 +1644,7 @@ ax.set_title(&#x27;Top 25 Features by SHAP Importance (any_cancer model)&#x27;)
 plt.tight_layout()
 plt.savefig(str(MODELS_DIR / &#x27;feature_importance_plot.png&#x27;), dpi=150, bbox_inches=&#x27;tight&#x27;)
 plt.show()</p></div>
-<div class="app-cell"><p class="app-cell-label">In&nbsp;&nbsp;[ ]&nbsp;&nbsp;&nbsp;Cell 17: Package and download models_saved.zip</p><p class="app-cell-code">zip_path = Path(&#x27;/content/models_saved.zip&#x27;)
-with zipfile.ZipFile(zip_path, &#x27;w&#x27;, zipfile.ZIP_DEFLATED) as zf:
-    for f in sorted(MODELS_DIR.iterdir()):
-        zf.write(f, f.name)
-        print(f&#x27;  {f.name}  ({f.stat().st_size//1024} KB)&#x27;)
-print(f&#x27;Total zip: {zip_path.stat().st_size/1024/1024:.1f} MB&#x27;)
-from google.colab import files; files.download(str(zip_path))</p></div>
+
 
 </body>
 </html>
