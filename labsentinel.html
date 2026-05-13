@@ -157,13 +157,13 @@ body{background:var(--bg);min-height:100vh}
           Auto-Fill from Lab Report (AI-Powered)
         </div>
         <div class="drop-zone" id="dropZone">
-          <input type="file" id="reportFile" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+          <input type="file" id="reportFile" accept=".pdf,.jpg,.jpeg,.png,.webp,.html" />
           <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
             <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
           </svg>
           <p class="drop-text"><strong>Upload your lab report</strong> to auto-fill values</p>
-          <p class="drop-sub">PDF, JPG, or PNG &middot; Powered by Google Gemini AI</p>
+          <p class="drop-sub">PDF, JPG, PNG, or HTML &middot; Powered by Google Gemini AI</p>
         </div>
         <div class="import-status" id="importStatus">
           <div class="spinner spinner-sm"></div>
@@ -382,23 +382,43 @@ async function parseLabReport(file){
   clearAutofillHighlights();
   setImportStatus('loading','Reading lab report with AI...');
 
-  const mimeType = file.type || (file.name.endsWith('.pdf')?'application/pdf':'image/jpeg');
-  let base64;
-  try{ base64 = await fileToBase64(file); }
-  catch(e){ setImportStatus('error','Could not read file: '+e.message); return; }
+  const isHTML = file.name.endsWith('.html') || file.type === 'text/html';
+  let requestBody;
+
+  if(isHTML){
+    let htmlText;
+    try{
+      htmlText = await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=e=>res(e.target.result);
+        r.onerror=rej;
+        r.readAsText(file);
+      });
+    }catch(e){ setImportStatus('error','Could not read file: '+e.message); return; }
+    requestBody={
+      contents:[{parts:[{text:'The following is a lab report in HTML format:\n\n'+htmlText+'\n\n'+GEMINI_PROMPT}]}],
+      generationConfig:{temperature:0,maxOutputTokens:1024}
+    };
+  } else {
+    const mimeType = file.type || (file.name.endsWith('.pdf')?'application/pdf':'image/jpeg');
+    let base64;
+    try{ base64 = await fileToBase64(file); }
+    catch(e){ setImportStatus('error','Could not read file: '+e.message); return; }
+    requestBody={
+      contents:[{parts:[
+        {inline_data:{mime_type:mimeType,data:base64}},
+        {text:GEMINI_PROMPT}
+      ]}],
+      generationConfig:{temperature:0,maxOutputTokens:1024}
+    };
+  }
 
   let parsed;
   try{
     const resp = await fetch(GEMINI_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[
-          {inline_data:{mime_type:mimeType,data:base64}},
-          {text:GEMINI_PROMPT}
-        ]}],
-        generationConfig:{temperature:0,maxOutputTokens:1024}
-      })
+      body:JSON.stringify(requestBody)
     });
     if(!resp.ok){ const t=await resp.text(); throw new Error(`Gemini API ${resp.status}: ${t.slice(0,200)}`); }
     const data=await resp.json();

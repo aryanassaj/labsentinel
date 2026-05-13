@@ -37,3 +37,14 @@ Thumbs.db
 
 # Claude settings
 .claude/
+
+# Source / build files — not published
+frontend/
+generate_html.py
+api/
+src/
+run_pipeline.py
+requirements.txt
+notebooks/
+LICENSE
+models_saved/_embedded.js
