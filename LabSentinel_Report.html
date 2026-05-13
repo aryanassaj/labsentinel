@@ -358,7 +358,7 @@ Across the CBC, biochemistry, iron, and CRP files, 35 raw laboratory measurement
   <text x="390" y="170" font-size="10.5" fill="#555">Cancer deaths within 5 years of exam: 740 &nbsp;|&nbsp; Composite any_cancer label: 5,723</text>
   <text x="80"  y="170" font-size="10.5" fill="#555">N = 53,448 total adults</text>
 </svg>
-<figcaption><strong>Figure 2.</strong> Left: class imbalance at 10.7% cancer prevalence, consistent with NHANES population-level epidemiology. Right: label source composition among the 5,723 cancer-positive participants. The majority of labels come from MCQ self-report, which covers all ten cycles. Mortality linkage provides the 1,978 confirmed cancer deaths followed to 2019, of which 740 occurred within five years of the blood draw -- the strongest pre-diagnostic signal in the dataset.</figcaption>
+<figcaption><strong>Figure 2.</strong> Left: class imbalance at 10.7% cancer prevalence, consistent with NHANES population-level epidemiology. Right: label source composition among the 5,723 cancer-positive participants. The majority of labels come from MCQ self-report, which covers all ten cycles. Mortality linkage provides the 1,978 confirmed cancer deaths followed to 2019, of which 740 occurred within five years of the blood draw&mdash;the strongest pre-diagnostic signal in the dataset.</figcaption>
 </figure>
 
 <h3>2.4 Inclusion Criteria and Exclusion</h3>
@@ -529,7 +529,7 @@ Raw lab values alone contain useful signal, but the cancer biology literature ha
 
 <h3>4.1 Absolute Cell Counts</h3>
 <p>
-NHANES reports white blood cell differentials as percentages of total WBC. Absolute cell counts -- the true measure of lymphocyte count, neutrophil burden, etc. -- are computed by multiplying each differential percentage by total WBC. This yields absolute neutrophil count (ANC), absolute lymphocyte count (ALC), absolute monocyte count (AMC), and absolute eosinophil count (AEC). These are the quantities used to compute inflammatory ratios.
+NHANES reports white blood cell differentials as percentages of total WBC. Absolute cell counts&mdash;the true measure of lymphocyte count, neutrophil burden, etc.&mdash;are computed by multiplying each differential percentage by total WBC. This yields absolute neutrophil count (ANC), absolute lymphocyte count (ALC), absolute monocyte count (AMC), and absolute eosinophil count (AEC). These are the quantities used to compute inflammatory ratios.
 </p>
 
 <h3>4.2 Inflammatory and Immune Ratios</h3>
@@ -687,7 +687,7 @@ Fourth, ensemble tree methods have consistently outperformed neural networks on 
 
 <h3>5.2 Class Imbalance Handling</h3>
 <p>
-With only 10.7% cancer prevalence, an unconstrained classifier would achieve 89.3% accuracy by predicting no cancer for every patient. This naive solution is clinically useless. BorderlineSMOTE was attempted during training to generate synthetic cancer-positive examples by interpolating between minority-class samples in feature space. However, BorderlineSMOTE does not natively handle missing values, and the NHANES feature matrix contains NaN entries for lab values that were not ordered or not collected in a given survey cycle. As a result, SMOTE was skipped for all models. Class imbalance was instead addressed through XGBoost's <code>scale_pos_weight</code> parameter, which Optuna tuned to 4.52 -- meaning the model assigns roughly 4.5x more weight to cancer-positive training examples than to negatives. XGBoost handles missing values natively through learned default routing directions at each tree split, so no imputation was required and no samples were dropped.
+With only 10.7% cancer prevalence, an unconstrained classifier would achieve 89.3% accuracy by predicting no cancer for every patient. This naive solution is clinically useless. BorderlineSMOTE was attempted during training to generate synthetic cancer-positive examples by interpolating between minority-class samples in feature space. However, BorderlineSMOTE does not natively handle missing values, and the NHANES feature matrix contains NaN entries for lab values that were not ordered or not collected in a given survey cycle. As a result, SMOTE was skipped for all models. Class imbalance was instead addressed through XGBoost's <code>scale_pos_weight</code> parameter, which Optuna tuned to 4.52&mdash;meaning the model assigns roughly 4.5x more weight to cancer-positive training examples than to negatives. XGBoost handles missing values natively through learned default routing directions at each tree split, so no imputation was required and no samples were dropped.
 </p>
 
 <h3>5.3 Hyperparameter Optimization</h3>
@@ -747,7 +747,7 @@ The AUC-PR of 0.323 should be interpreted in the context of the 10.7% class prev
 <figure>
 <svg width="820" height="400" viewBox="0 0 820 400" xmlns="http://www.w3.org/2000/svg">
   <rect width="820" height="400" fill="#fff"/>
-  <text x="210" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">ROC Curve -- Any Cancer Model</text>
+  <text x="210" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">ROC Curve&mdash;Any Cancer Model</text>
   <text x="610" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Precision-Recall Curve</text>
 
   <!-- LEFT: ROC Curve -->
@@ -906,7 +906,7 @@ The low standard deviation across folds (0.003 for AUC-ROC) indicates that perfo
   <tr><td>Breast</td><td>688</td><td>34</td><td>0.904</td><td>PLR, Hemoglobin, Age x sex interaction</td></tr>
   <tr><td>Prostate</td><td>738</td><td>51</td><td>0.933</td><td>Male x age 50+, Alkaline phosphatase, eGFR</td></tr>
   <tr><td>Leukemia</td><td>53</td><td>39</td><td>0.775</td><td>WBC, Lymphocyte%, NLR, Platelet count</td></tr>
-  <tr><td>Lymphoma</td><td>96</td><td>39</td><td>0.572 *</td><td>Insufficient signal -- near random</td></tr>
+  <tr><td>Lymphoma</td><td>96</td><td>39</td><td>0.572 *</td><td>Insufficient signal&mdash;near random</td></tr>
 </table>
 
 <hr class="section-rule">
@@ -918,7 +918,7 @@ The low standard deviation across folds (0.003 for AUC-ROC) indicates that perfo
 SHAP (SHapley Additive exPlanations) values were computed using the TreeExplainer algorithm on a random sample of 2,000 participants from the held-out validation set. SHAP values are exact for tree models, meaning they satisfy the game-theoretic axioms of efficiency (values sum to prediction), symmetry (features with identical contributions receive equal attribution), and dummy player consistency (features that never change the prediction receive zero attribution).
 </p>
 <p>
-The mean absolute SHAP value for each feature -- averaged across all 2,000 sampled patients -- represents the average contribution magnitude of that feature to the risk score. This is the most reliable single measure of global feature importance for non-linear models.
+The mean absolute SHAP value for each feature&mdash;averaged across all 2,000 sampled patients&mdash;represents the average contribution magnitude of that feature to the risk score. This is the most reliable single measure of global feature importance for non-linear models.
 </p>
 
 <figure>
@@ -1109,7 +1109,7 @@ Fifth, NHANES data collection predates some current clinical practices. LDH, for
 LabSentinel demonstrates that routine blood panels, available from a standard annual physical at no additional cost, contain statistically extractable pre-diagnostic cancer signals when analyzed with properly engineered features and gradient boosted tree models. Using 53,448 NHANES participants followed through the National Death Index, a model achieving AUC-ROC 0.810 and 83.9% sensitivity at a calibrated threshold was trained, validated, and deployed as an immediately usable browser-based clinical tool.
 </p>
 <p>
-The 86-feature engineering framework, grounded in validated oncology biomarkers including NLR, SII, Glasgow Prognostic Score, and eGFR, contributes meaningfully beyond raw lab values. SHAP attribution makes every prediction explainable at the patient level, addressing the transparency requirement that is essential for any clinical decision support tool. The deployment architecture -- a self-contained HTML file with embedded model weights, JavaScript inference, Gemini-powered lab report parsing, and in-browser PDF generation -- eliminates all technical barriers between the trained model and a clinician with a patient's lab report.
+The 86-feature engineering framework, grounded in validated oncology biomarkers including NLR, SII, Glasgow Prognostic Score, and eGFR, contributes meaningfully beyond raw lab values. SHAP attribution makes every prediction explainable at the patient level, addressing the transparency requirement that is essential for any clinical decision support tool. The deployment architecture&mdash;a self-contained HTML file with embedded model weights, JavaScript inference, Gemini-powered lab report parsing, and in-browser PDF generation&mdash;eliminates all technical barriers between the trained model and a clinician with a patient's lab report.
 </p>
 <p>
 The most important caveat is also the most fundamental: this is a research tool, not a diagnostic test. An AUC-ROC of 0.810 on a population survey is encouraging as a proof of concept, but clinical deployment would require prospective validation in an independent cohort, regulatory review, and clinical workflow integration far beyond the scope of this project. What this work establishes is that the signal is real, measurable from data that already exists, and extractable with methods that are well within the current state of the art.
